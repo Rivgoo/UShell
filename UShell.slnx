@@ -1,0 +1,4 @@
+﻿<Solution>
+  <Project Path="UShell.Runtime.Unity.csproj" />
+  <Project Path="UShell.Runtime.Core.csproj" />
+</Solution>
