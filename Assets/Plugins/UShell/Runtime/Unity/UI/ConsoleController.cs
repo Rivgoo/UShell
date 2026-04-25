@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UShell.Runtime.Core;
-using UShell.Runtime.Core.BuiltIn;
+using UShell.Runtime.Unity.BuiltIn;
 using UShell.Runtime.Core.Commands;
 using UShell.Runtime.Core.Output;
 using UShell.Runtime.Unity.Inputs;
@@ -18,6 +18,8 @@ namespace UShell.Runtime.Unity.UI
 
 		private readonly List<string> _history = new(50);
 		private int _historyIndex = -1;
+
+		public IReadOnlyList<string> History => _history;
 
 		public ConsoleController(
 			IShellCore core,
@@ -51,7 +53,7 @@ namespace UShell.Runtime.Unity.UI
 			_printer.OnLogAdded += LogAdded;
 
 			BuiltInShellProfile.OnClearRequested += _view.ClearLogs;
-			BuiltInShellProfile.OnExitRequested += CloseConsole;
+			BuiltInShellProfile.OnCloseRequested += CloseConsole;
 		}
 
 		private void UnbindEvents()
@@ -67,7 +69,7 @@ namespace UShell.Runtime.Unity.UI
 			_printer.OnLogAdded -= LogAdded;
 
 			BuiltInShellProfile.OnClearRequested -= _view.ClearLogs;
-			BuiltInShellProfile.OnExitRequested -= CloseConsole;
+			BuiltInShellProfile.OnCloseRequested -= CloseConsole;
 
 			_view.Dispose();
 		}

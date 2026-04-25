@@ -19,6 +19,17 @@ namespace UShell.Editor.UI
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("_logFontSize"));
 
 			EditorGUILayout.Space(10);
+			DrawHeader("Global Monospace (ASCII Alignment)");
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("_forceGlobalMonospace"));
+			
+			if (serializedObject.FindProperty("_forceGlobalMonospace").boolValue)
+			{
+				EditorGUI.indentLevel++;
+				EditorGUILayout.PropertyField(serializedObject.FindProperty("_globalMonospaceWidth"));
+				EditorGUI.indentLevel--;
+			}
+
+			EditorGUILayout.Space(10);
 			DrawHeader("Colors & Themes");
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("_ghostTextColor"));
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("_promptColor"));
@@ -39,7 +50,7 @@ namespace UShell.Editor.UI
 
 			EditorGUILayout.Space(10);
 			DrawHeader("Limits");
-			EditorGUILayout.PropertyField(serializedObject.FindProperty("_logLogs"));
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("_maxLogs"));
 
 			serializedObject.ApplyModifiedProperties();
 		}

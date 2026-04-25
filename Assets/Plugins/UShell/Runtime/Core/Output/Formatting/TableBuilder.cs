@@ -1,4 +1,5 @@
 ﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -6,7 +7,7 @@ namespace UShell.Runtime.Core.Output.Formatting
 {
 	public static class TableBuilder
 	{
-		public static string BuildAsciiTable(IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<string>> rows)
+		public static string BuildAsciiTable(IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<string>> rows, TableStyle style = TableStyle.Standard)
 		{
 			if (headers == null || headers.Count == 0)
 			{
@@ -21,9 +22,14 @@ namespace UShell.Runtime.Core.Output.Formatting
 
 			if (rows != null)
 			{
-				foreach (var row in rows)
+				for (int i = 0; i < rows.Count; i++)
 				{
-					AppendRow(stringBuilder, row, columnWidths, headers.Count);
+					AppendRow(stringBuilder, rows[i], columnWidths, headers.Count);
+					
+					if (style == TableStyle.Grid && i < rows.Count - 1)
+					{
+						AppendSeparator(stringBuilder, columnWidths);
+					}
 				}
 			}
 
@@ -36,7 +42,7 @@ namespace UShell.Runtime.Core.Output.Formatting
 
 			for (int index = 0; index < headers.Count; index++)
 			{
-				widths[index] = headers[index]?.Length ?? 0;
+				widths[index] = GetMaxVisualLength(headers[index]);
 			}
 
 			if (rows == null) return widths;
@@ -45,7 +51,7 @@ namespace UShell.Runtime.Core.Output.Formatting
 			{
 				for (int index = 0; index < row.Count && index < headers.Count; index++)
 				{
-					int cellLength = row[index]?.Length ?? 0;
+					int cellLength = GetMaxVisualLength(row[index]);
 					if (cellLength > widths[index])
 					{
 						widths[index] = cellLength;
@@ -56,22 +62,65 @@ namespace UShell.Runtime.Core.Output.Formatting
 			return widths;
 		}
 
+		private static int GetMaxVisualLength(string? cell)
+		{
+			if (string.IsNullOrEmpty(cell)) return 0;
+
+			int maxLength = 0;
+			string[] lines = cell.Split('\n');
+			
+			foreach (string line in lines)
+			{
+				int visualLength = RichTextStripper.Strip(line).Length;
+				if (visualLength > maxLength)
+				{
+					maxLength = visualLength;
+				}
+			}
+
+			return maxLength;
+		}
+
 		private static void AppendRow(StringBuilder stringBuilder, IReadOnlyList<string> row, int[] columnWidths, int maxColumns = -1)
 		{
 			int columnsToPrint = maxColumns > 0 ? maxColumns : columnWidths.Length;
 
-			for (int index = 0; index < columnsToPrint; index++)
-			{
-				string cell = (index < row.Count && row[index] != null) ? row[index] : string.Empty;
-				stringBuilder.Append(cell.PadRight(columnWidths[index]));
+			string[][] cellLines = new string[columnsToPrint][];
+			int maxLinesInRow = 1;
 
-				if (index < columnsToPrint - 1)
+			for (int i = 0; i < columnsToPrint; i++)
+			{
+				string cell = (i < row.Count && row[i] != null) ? row[i] : string.Empty;
+				cellLines[i] = cell.Split('\n');
+				
+				if (cellLines[i].Length > maxLinesInRow)
 				{
-					stringBuilder.Append(" | ");
+					maxLinesInRow = cellLines[i].Length;
 				}
 			}
 
-			stringBuilder.AppendLine();
+			for (int lineIdx = 0; lineIdx < maxLinesInRow; lineIdx++)
+			{
+				for (int colIdx = 0; colIdx < columnsToPrint; colIdx++)
+				{
+					string line = lineIdx < cellLines[colIdx].Length ? cellLines[colIdx][lineIdx] : string.Empty;
+
+					int visualLen = RichTextStripper.Strip(line).Length;
+					int padding = Math.Max(0, columnWidths[colIdx] - visualLen);
+
+					stringBuilder.Append(line);
+					if (padding > 0)
+					{
+						stringBuilder.Append(' ', padding);
+					}
+
+					if (colIdx < columnsToPrint - 1)
+					{
+						stringBuilder.Append(" | ");
+					}
+				}
+				stringBuilder.AppendLine();
+			}
 		}
 
 		private static void AppendSeparator(StringBuilder stringBuilder, int[] columnWidths)

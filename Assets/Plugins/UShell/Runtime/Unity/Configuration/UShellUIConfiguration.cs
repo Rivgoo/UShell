@@ -11,6 +11,12 @@ namespace UShell.Runtime.Unity.UI.Configuration
 		[SerializeField] private float _inputFontSize = 14f;
 		[SerializeField] private float _logFontSize = 14f;
 
+		[Header("Global Monospace (ASCII Alignment)")]
+		[Tooltip("Forces ALL logs to use monospaced character widths. Fixes alignment when using proportional fonts.")]
+		[SerializeField] private bool _forceGlobalMonospace = true;
+		[Tooltip("The width of each character in 'em' units.")]
+		[SerializeField] private float _globalMonospaceWidth = 0.6f;
+
 		[Header("Colors & Themes")]
 		[SerializeField] private Color _ghostTextColor = new Color(0.4f, 0.4f, 0.4f, 0.5f);
 		[SerializeField] private Color _promptColor = new Color(1f, 0.55f, 0f, 1f);
@@ -33,6 +39,9 @@ namespace UShell.Runtime.Unity.UI.Configuration
 		public TMP_FontAsset MainFont => _mainFont;
 		public float InputFontSize => _inputFontSize;
 		public float LogFontSize => _logFontSize;
+
+		public bool ForceGlobalMonospace => _forceGlobalMonospace;
+		public float GlobalMonospaceWidth => _globalMonospaceWidth;
 
 		public Color GhostTextColor => _ghostTextColor;
 		public Color PromptColor => _promptColor;

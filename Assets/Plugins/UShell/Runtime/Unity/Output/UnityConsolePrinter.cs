@@ -10,28 +10,28 @@ namespace UShell.Runtime.Unity.Output
 {
 	public sealed class UnityConsolePrinter : IConsolePrinter
 	{
-		public event Action<LogEntry> OnLogAdded;
+		public event Action<LogEntry> OnLogAdded = delegate { };
 
-		private readonly bool _mirrorToUnityConsole;
+		public bool MirrorToUnityConsole { get; set; }
 
 		public UnityConsolePrinter(bool mirrorToUnityConsole = true)
 		{
-			_mirrorToUnityConsole = mirrorToUnityConsole;
+			MirrorToUnityConsole = mirrorToUnityConsole;
 		}
 
 		public void Print(LogEntry entry)
 		{
-			OnLogAdded?.Invoke(entry);
+			OnLogAdded.Invoke(entry);
 
-			if (_mirrorToUnityConsole)
+			if (MirrorToUnityConsole)
 			{
 				MirrorToEngine(entry);
 			}
 		}
 
-		public void PrintTable(IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<string>> rows)
+		public void PrintTable(IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<string>> rows, TableStyle style = TableStyle.Standard)
 		{
-			string table = TableBuilder.BuildAsciiTable(headers, rows);
+			string table = TableBuilder.BuildAsciiTable(headers, rows, style);
 			Print(new LogEntry(table, LogType.Standard));
 		}
 

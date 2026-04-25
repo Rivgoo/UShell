@@ -1,10 +1,12 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Collections.Generic;
+using UnityEngine;
 using UShell.Runtime.Core;
 using UShell.Runtime.Core.Bootstrapping;
-using UShell.Runtime.Core.BuiltIn;
 using UShell.Runtime.Core.Commands;
 using UShell.Runtime.Core.Output.Reporting;
 using UShell.Runtime.Core.Registry;
+using UShell.Runtime.Unity.BuiltIn;
 using UShell.Runtime.Unity.Inputs;
 using UShell.Runtime.Unity.Output;
 using UShell.Runtime.Unity.Parsing.Types;
@@ -49,6 +51,15 @@ namespace UShell.Runtime.Unity.Bootstrapping
 			_printer = new UnityConsolePrinter(_mirrorLogsToUnityConsole);
 			var registryProxy = new RegistryProxy();
 
+			Func<IReadOnlyList<string>> historyProvider = () => _controller?.History ?? Array.Empty<string>();
+
+			var builtInProfile = BuiltInProfileConfigurator.Create(
+				_printer, 
+				registryProxy, 
+				Application.version, 
+				_activeEnvironment, 
+				historyProvider);
+
 			IShellCore core = new ShellBuilder(_activeEnvironment)
 				.AddTypeParser(new Vector2Parser())
 				.AddTypeParser(new Vector3Parser())
@@ -56,7 +67,7 @@ namespace UShell.Runtime.Unity.Bootstrapping
 				.AddTypeParser(new QuaternionParser())
 				.AddTypeParser(new ColorParser())
 				.AddTypeParser(new GameObjectParser())
-				.AddProfile(new BuiltInShellProfile(_printer, registryProxy, Application.version, _activeEnvironment))
+				.AddProfile(builtInProfile)
 				.Build();
 
 			registryProxy.Target = core.Registry;

@@ -52,7 +52,16 @@ namespace UShell.Runtime.Unity.UI.Components
 		public void ApplyData(LogEntry log, UShellUIConfiguration configuration)
 		{
 			_currentMessage = log.Message;
-			_textComponent.text = _currentMessage;
+
+			string displayText = _currentMessage;
+
+			if (configuration.ForceGlobalMonospace)
+			{
+				string width = configuration.GlobalMonospaceWidth.ToString(System.Globalization.CultureInfo.InvariantCulture);
+				displayText = $"<mspace={width}em>{displayText}</mspace>";
+			}
+
+			_textComponent.text = displayText;
 
 			ApplyIconConfiguration(log.Type, configuration);
 			ApplyTextColor(log.Type, configuration);

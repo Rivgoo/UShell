@@ -163,7 +163,7 @@ namespace UShell.Runtime.Unity.UI.Components
 				return;
 			}
 
-			float alpha = Mathf.PingPong(Time.unscaledTime * 2f, 1f);
+			float alpha = Mathf.PingPong(Time.unscaledTime * 2f, 2f);
 			SetPromptAlpha(Mathf.Lerp(0.2f, 1f, alpha));
 		}
 
