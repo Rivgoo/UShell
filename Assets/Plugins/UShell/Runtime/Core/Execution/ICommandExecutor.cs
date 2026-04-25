@@ -1,7 +1,8 @@
-﻿namespace UShell.Runtime.Core.Execution
+﻿#nullable enable
+namespace UShell.Runtime.Core.Execution
 {
 	public interface ICommandExecutor
 	{
-		ExecutionResult Execute(string input);
+		ExecutionResult<object?> Execute(string input);
 	}
 }

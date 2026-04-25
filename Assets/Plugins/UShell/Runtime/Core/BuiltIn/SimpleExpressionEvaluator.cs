@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using UShell.Runtime.Core.Diagnostics;
 using UShell.Runtime.Core.Execution;
 
 namespace UShell.Runtime.Core.BuiltIn
@@ -13,14 +14,22 @@ namespace UShell.Runtime.Core.BuiltIn
 		public static ExecutionResult<double> Evaluate(string expression)
 		{
 			if (string.IsNullOrWhiteSpace(expression))
-				return ExecutionResult<double>.Failure("Expression is empty.");
+			{
+				return ExecutionResult<double>.Failure(
+					ShellError.Create(ShellErrorCode.Execute_ExpressionError, -1, "Expression is empty."));
+			}
+
 			try
 			{
 				var p = new ExprParser(expression.Trim().AsSpan());
 				double result = p.ParseExpr();
 				return ExecutionResult<double>.Success(result);
 			}
-			catch (Exception ex) { return ExecutionResult<double>.Failure(ex.Message); }
+			catch (Exception ex)
+			{
+				return ExecutionResult<double>.Failure(
+					ShellError.Create(ShellErrorCode.Execute_ExpressionError, -1, ex.Message));
+			}
 		}
 
 		private ref struct ExprParser
@@ -50,7 +59,12 @@ namespace UShell.Runtime.Core.BuiltIn
 				{
 					char op = _s[_i++];
 					double r = ParseUnary();
-					if (op == '/' && r == 0) throw new DivideByZeroException("Division by zero.");
+
+					if (op == '/' && r == 0)
+					{
+						throw new DivideByZeroException("Division by zero.");
+					}
+
 					v = op == '*' ? v * r : v / r;
 				}
 				return v;
@@ -59,7 +73,11 @@ namespace UShell.Runtime.Core.BuiltIn
 			private double ParseUnary()
 			{
 				Skip();
-				if (_i < _s.Length && _s[_i] == '-') { _i++; return -ParsePrimary(); }
+				if (_i < _s.Length && _s[_i] == '-')
+				{
+					_i++;
+					return -ParsePrimary();
+				}
 				return ParsePrimary();
 			}
 
@@ -71,7 +89,12 @@ namespace UShell.Runtime.Core.BuiltIn
 					_i++;
 					double v = ParseExpr();
 					Skip();
-					if (_i >= _s.Length || _s[_i] != ')') throw new FormatException("Missing ')'.");
+
+					if (_i >= _s.Length || _s[_i] != ')')
+					{
+						throw new FormatException("Missing ')'.");
+					}
+
 					_i++;
 					return v;
 				}
@@ -82,17 +105,31 @@ namespace UShell.Runtime.Core.BuiltIn
 			{
 				Skip();
 				int start = _i;
-				while (_i < _s.Length && (char.IsDigit(_s[_i]) || _s[_i] == '.')) _i++;
-				if (_i == start) throw new FormatException($"Expected number at pos {start}.");
-				if (!double.TryParse(_s.Slice(start, _i - start),
-					NumberStyles.Float, CultureInfo.InvariantCulture, out double v))
+
+				while (_i < _s.Length && (char.IsDigit(_s[_i]) || _s[_i] == '.'))
+				{
+					_i++;
+				}
+
+				if (_i == start)
+				{
+					throw new FormatException($"Expected number at pos {start}.");
+				}
+
+				if (!double.TryParse(_s.Slice(start, _i - start), NumberStyles.Float, CultureInfo.InvariantCulture, out double v))
+				{
 					throw new FormatException($"Invalid number at pos {start}.");
+				}
+
 				return v;
 			}
 
 			private void Skip()
 			{
-				while (_i < _s.Length && char.IsWhiteSpace(_s[_i])) _i++;
+				while (_i < _s.Length && char.IsWhiteSpace(_s[_i]))
+				{
+					_i++;
+				}
 			}
 		}
 	}

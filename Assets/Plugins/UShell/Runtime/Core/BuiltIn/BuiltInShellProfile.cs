@@ -78,7 +78,10 @@ namespace UShell.Runtime.Core.BuiltIn
 		private void ShowHelp(string commandFilter)
 		{
 			if (!string.IsNullOrWhiteSpace(commandFilter))
-			{ ShowCommandDetail(commandFilter); return; }
+			{
+				ShowCommandDetail(commandFilter);
+				return;
+			}
 			ShowAllCommands();
 		}
 
@@ -95,7 +98,9 @@ namespace UShell.Runtime.Core.BuiltIn
 			sb.AppendLine($"  {sig.Description}");
 
 			if (sig.Aliases.Count > 0)
+			{
 				sb.AppendLine(RichText.Color($"  Aliases  : {string.Join(", ", sig.Aliases)}", "#6a7185"));
+			}
 
 			sb.AppendLine(RichText.Color($"  Env tags : {sig.Tags}", "#6a7185"));
 			sb.AppendLine(RichText.Color($"  Usage    : {BuildUsage(sig)}", "#7dcfff"));
@@ -124,6 +129,7 @@ namespace UShell.Runtime.Core.BuiltIn
 			foreach (CommandSignature sig in _registry.GetAllCommands())
 			{
 				if (!seen.Add(sig.Name)) continue;
+
 				rows.Add(new[]
 				{
 					sig.Name,
@@ -143,15 +149,18 @@ namespace UShell.Runtime.Core.BuiltIn
 				LogType.Standard));
 		}
 
-		private void Echo(string message) =>
+		private void Echo(string message)
+		{
 			_printer.Print(new LogEntry(message, LogType.Standard));
+		}
 
 		private void Eval(string expression)
 		{
 			var result = SimpleExpressionEvaluator.Evaluate(expression);
+
 			_printer.Print(result.IsSuccess
 				? new LogEntry($"= {result.Value:G}", LogType.Success)
-				: new LogEntry($"Expression error: {result.ErrorMessage}", LogType.Error));
+				: new LogEntry(result.Error!.Value.Message, LogType.Error));
 		}
 
 		private static string BuildUsage(CommandSignature sig)

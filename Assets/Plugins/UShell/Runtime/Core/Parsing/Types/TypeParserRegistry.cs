@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using UShell.Runtime.Core.Exceptions;
 
 namespace UShell.Runtime.Core.Parsing.Types
 {
@@ -12,9 +13,15 @@ namespace UShell.Runtime.Core.Parsing.Types
 			return _parsers.TryGetValue(type, out parser!);
 		}
 
-		public void Register(ITypeParser parser)
+		public void Register(ITypeParser parser, bool forceOverride = false)
 		{
 			if (parser == null) throw new ArgumentNullException(nameof(parser));
+
+			if (!forceOverride && _parsers.ContainsKey(parser.TargetType))
+			{
+				throw new ParserRegistrationException(
+					$"A parser for type '{parser.TargetType.Name}' is already registered.");
+			}
 
 			_parsers[parser.TargetType] = parser;
 		}

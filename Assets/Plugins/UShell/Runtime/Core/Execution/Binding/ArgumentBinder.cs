@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using UShell.Runtime.Core.Commands;
+using UShell.Runtime.Core.Diagnostics;
 using UShell.Runtime.Core.Parsing.Syntax;
 using UShell.Runtime.Core.Parsing.Types;
 
@@ -35,19 +36,19 @@ namespace UShell.Runtime.Core.Execution.Binding
 
 					if (parameterIndex == -1)
 					{
-						return ExecutionResult<object?[]>.Failure($"Unknown parameter '{namedArgument.Name}'.", namedArgument.StartIndex);
+						return ExecutionResult<object?[]>.Failure(
+							ShellError.Create(ShellErrorCode.Bind_UnknownParameter, namedArgument.StartIndex, namedArgument.Name));
 					}
 
 					if (isBound[parameterIndex])
 					{
-						return ExecutionResult<object?[]>.Failure($"Parameter '{namedArgument.Name}' is already bound.", namedArgument.StartIndex);
+						return ExecutionResult<object?[]>.Failure(
+							ShellError.Create(ShellErrorCode.Bind_ParameterAlreadyBound, namedArgument.StartIndex, namedArgument.Name));
 					}
 
-					var parseResult = ParseNode(namedArgument.Value, parameters[parameterIndex].ParameterType);
-					if (!parseResult.IsSuccess)
-					{
-						return ExecutionResult<object?[]>.Failure($"Failed to parse parameter '{namedArgument.Name}': {parseResult.ErrorMessage}", namedArgument.Value.StartIndex);
-					}
+					var parseResult = ParseNode(namedArgument.Value, parameters[parameterIndex].ParameterType, parameters[parameterIndex].Name);
+
+					if (!parseResult.IsSuccess) return ExecutionResult<object?[]>.Failure(parseResult.Error!.Value);
 
 					boundArguments[parameterIndex] = parseResult.Value;
 					isBound[parameterIndex] = true;
@@ -56,19 +57,19 @@ namespace UShell.Runtime.Core.Execution.Binding
 				{
 					if (isNamedSectionStarted)
 					{
-						return ExecutionResult<object?[]>.Failure("Positional arguments cannot appear after named arguments.", argumentNode.StartIndex);
+						return ExecutionResult<object?[]>.Failure(
+							ShellError.Create(ShellErrorCode.Bind_PositionalAfterNamed, argumentNode.StartIndex));
 					}
 
 					if (positionalIndex >= parameters.Count)
 					{
-						return ExecutionResult<object?[]>.Failure("Too many arguments provided.", argumentNode.StartIndex);
+						return ExecutionResult<object?[]>.Failure(
+							ShellError.Create(ShellErrorCode.Bind_TooManyArguments, argumentNode.StartIndex));
 					}
 
-					var parseResult = ParseNode(argumentNode, parameters[positionalIndex].ParameterType);
-					if (!parseResult.IsSuccess)
-					{
-						return ExecutionResult<object?[]>.Failure($"Failed to parse parameter '{parameters[positionalIndex].Name}': {parseResult.ErrorMessage}", argumentNode.StartIndex);
-					}
+					var parseResult = ParseNode(argumentNode, parameters[positionalIndex].ParameterType, parameters[positionalIndex].Name);
+
+					if (!parseResult.IsSuccess) return ExecutionResult<object?[]>.Failure(parseResult.Error!.Value);
 
 					boundArguments[positionalIndex] = parseResult.Value;
 					isBound[positionalIndex] = true;
@@ -103,7 +104,8 @@ namespace UShell.Runtime.Core.Execution.Binding
 					}
 					else
 					{
-						return ExecutionResult<object?[]>.Failure($"Missing required parameter '{parameters[index].Name}'.", -1);
+						return ExecutionResult<object?[]>.Failure(
+							ShellError.Create(ShellErrorCode.Bind_MissingRequiredParameter, -1, parameters[index].Name));
 					}
 				}
 			}
@@ -111,50 +113,67 @@ namespace UShell.Runtime.Core.Execution.Binding
 			return ExecutionResult<object?[]>.Success(boundArguments);
 		}
 
-		private ExecutionResult<object?> ParseNode(SyntaxNode node, Type targetType)
+		private ExecutionResult<object?> ParseNode(SyntaxNode node, Type targetType, string paramName)
 		{
 			if (targetType.IsArray)
 			{
-				return ParseArrayNode(node, targetType);
+				return ParseArrayNode(node, targetType, paramName);
 			}
 
 			string textValue = ExtractScalarValue(node, out bool isScalar);
 			if (!isScalar)
 			{
-				return ExecutionResult<object?>.Failure("Expected a single value, but got an array.", node.StartIndex);
+				return ExecutionResult<object?>.Failure(
+					ShellError.Create(ShellErrorCode.Bind_ExpectedScalarGotArray, node.StartIndex, paramName));
 			}
 
 			if (!_parserRegistry.TryGetParser(targetType, out ITypeParser parser))
 			{
-				return ExecutionResult<object?>.Failure($"No type parser registered for type '{targetType.Name}'.", node.StartIndex);
+				return ExecutionResult<object?>.Failure(
+					ShellError.Create(ShellErrorCode.Bind_NoParserRegistered, node.StartIndex, targetType.Name));
 			}
 
 			var result = parser.Parse(textValue);
+
 			if (!result.IsSuccess)
 			{
-				return ExecutionResult<object?>.Failure(result.ErrorMessage, node.StartIndex);
+				return ExecutionResult<object?>.Failure(result.Error!.Value.WithPosition(node.StartIndex));
 			}
 
 			return result;
 		}
 
-		private ExecutionResult<object?> ParseArrayNode(SyntaxNode node, Type targetType)
+		private ExecutionResult<object?> ParseArrayNode(SyntaxNode node, Type targetType, string paramName)
 		{
 			if (node is not ArrayNode arrayNode)
 			{
-				return ExecutionResult<object?>.Failure("Expected an array value (e.g. [1, 2, 3]).", node.StartIndex);
+				return ExecutionResult<object?>.Failure(
+					ShellError.Create(ShellErrorCode.Bind_ExpectedArrayGotScalar, node.StartIndex, paramName));
 			}
 
 			Type elementType = targetType.GetElementType()!;
+
+			if (elementType.IsArray)
+			{
+				return ExecutionResult<object?>.Failure(
+					ShellError.Create(ShellErrorCode.Bind_MultidimensionalArrayNotSupported, node.StartIndex));
+			}
+
 			Array arrayInstance = Array.CreateInstance(elementType, arrayNode.Elements.Count);
 
 			for (int index = 0; index < arrayNode.Elements.Count; index++)
 			{
-				var elementResult = ParseNode(arrayNode.Elements[index], elementType);
-				if (!elementResult.IsSuccess)
+				SyntaxNode elementNode = arrayNode.Elements[index];
+
+				if (elementNode is ArrayNode)
 				{
-					return ExecutionResult<object?>.Failure($"Array element at index {index}: {elementResult.ErrorMessage}", arrayNode.Elements[index].StartIndex);
+					return ExecutionResult<object?>.Failure(
+						ShellError.Create(ShellErrorCode.Bind_MultidimensionalArrayNotSupported, elementNode.StartIndex));
 				}
+
+				var elementResult = ParseNode(elementNode, elementType, paramName);
+
+				if (!elementResult.IsSuccess) return elementResult;
 
 				arrayInstance.SetValue(elementResult.Value, index);
 			}
@@ -166,15 +185,8 @@ namespace UShell.Runtime.Core.Execution.Binding
 		{
 			isScalar = true;
 
-			if (node is LiteralNode literal)
-			{
-				return literal.Value;
-			}
-
-			if (node is StringNode stringNode)
-			{
-				return stringNode.Value;
-			}
+			if (node is LiteralNode literal) return literal.Value;
+			if (node is StringNode stringNode) return stringNode.Value;
 
 			isScalar = false;
 			return string.Empty;

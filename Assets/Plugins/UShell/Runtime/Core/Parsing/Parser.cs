@@ -2,6 +2,8 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Text;
+using UShell.Runtime.Core.Diagnostics;
 using UShell.Runtime.Core.Execution;
 using UShell.Runtime.Core.Parsing.Lexing;
 using UShell.Runtime.Core.Parsing.Syntax;
@@ -10,10 +12,15 @@ namespace UShell.Runtime.Core.Parsing
 {
 	public static class Parser
 	{
+		private const int MaxRecursionDepth = 20;
+
 		public static ExecutionResult<CommandNode> Parse(string input)
 		{
 			if (string.IsNullOrWhiteSpace(input))
-				return ExecutionResult<CommandNode>.Failure("Input is empty.", 0);
+			{
+				return ExecutionResult<CommandNode>.Failure(
+					ShellError.Create(ShellErrorCode.Syntax_EmptyInput, 0));
+			}
 
 			int maxTokens = input.Length + 1;
 			Token[] buffer = ArrayPool<Token>.Shared.Rent(maxTokens);
@@ -35,7 +42,11 @@ namespace UShell.Runtime.Core.Parsing
 			int count = 0;
 			var lexer = new Lexer(input.AsSpan());
 			Token t;
-			do { t = lexer.GetNextToken(); buffer[count++] = t; }
+			do
+			{
+				t = lexer.GetNextToken();
+				buffer[count++] = t;
+			}
 			while (t.Type != TokenType.EndOfFile);
 			return count;
 		}
@@ -69,56 +80,77 @@ namespace UShell.Runtime.Core.Parsing
 			public ExecutionResult<CommandNode> ParseCommand()
 			{
 				Token cmd = Consume();
+
 				if (cmd.Type != TokenType.Identifier)
-					return ExecutionResult<CommandNode>.Failure($"Expected command name, got '{Slice(cmd)}'.", cmd.Position);
+				{
+					return ExecutionResult<CommandNode>.Failure(
+						ShellError.Create(ShellErrorCode.Syntax_ExpectedCommandName, cmd.Position, Slice(cmd)));
+				}
 
 				var args = new List<SyntaxNode>();
 
 				while (Peek().Type != TokenType.EndOfFile)
 				{
-					var arg = ParseArgument();
-					if (!arg.IsSuccess)
-						return ExecutionResult<CommandNode>.Failure(arg.ErrorMessage, arg.ErrorPosition);
+					var arg = ParseArgument(1);
+					if (!arg.IsSuccess) return ExecutionResult<CommandNode>.Failure(arg.Error!.Value);
+
 					args.Add(arg.Value);
 				}
 
 				int end = args.Count > 0 ? args[^1].StartIndex + args[^1].Length : cmd.Position + cmd.Length;
+
 				return ExecutionResult<CommandNode>.Success(
 					new CommandNode(cmd.Position, end - cmd.Position, Slice(cmd), args.AsReadOnly()));
 			}
 
-			private ExecutionResult<SyntaxNode> ParseArgument() =>
-				Peek().Type == TokenType.Minus ? ParseNamedArgument() : ParseValue();
+			private ExecutionResult<SyntaxNode> ParseArgument(int depth)
+			{
+				if (depth > MaxRecursionDepth)
+				{
+					return ExecutionResult<SyntaxNode>.Failure(
+						ShellError.Create(ShellErrorCode.Syntax_MaxDepthExceeded, Peek().Position));
+				}
 
-			private ExecutionResult<SyntaxNode> ParseNamedArgument()
+				return Peek().Type == TokenType.Minus ? ParseNamedArgument(depth) : ParseValue(depth);
+			}
+
+			private ExecutionResult<SyntaxNode> ParseNamedArgument(int depth)
 			{
 				Token minus = Consume();
 				Token name = Consume();
 
 				if (name.Type != TokenType.Identifier)
-					return ExecutionResult<SyntaxNode>.Failure("Expected argument name after '-'.", name.Position);
+				{
+					return ExecutionResult<SyntaxNode>.Failure(
+						ShellError.Create(ShellErrorCode.Syntax_ExpectedArgumentName, name.Position));
+				}
 
-				var val = ParseValue();
-				if (!val.IsSuccess) return val;
+				var valResult = ParseValue(depth + 1);
+				if (!valResult.IsSuccess) return valResult;
 
-				int len = val.Value.StartIndex + val.Value.Length - minus.Position;
+				int len = valResult.Value.StartIndex + valResult.Value.Length - minus.Position;
+
 				return ExecutionResult<SyntaxNode>.Success(
-					new NamedArgumentNode(minus.Position, len, Slice(name), val.Value));
+					new NamedArgumentNode(minus.Position, len, Slice(name), valResult.Value));
 			}
 
-			private ExecutionResult<SyntaxNode> ParseValue()
+			private ExecutionResult<SyntaxNode> ParseValue(int depth)
 			{
+				if (depth > MaxRecursionDepth)
+				{
+					return ExecutionResult<SyntaxNode>.Failure(
+						ShellError.Create(ShellErrorCode.Syntax_MaxDepthExceeded, Peek().Position));
+				}
+
 				Token t = Peek();
 				switch (t.Type)
 				{
 					case TokenType.LBracket:
-						return ParseArray();
+						return ParseArray(depth + 1);
 
 					case TokenType.String:
 						Consume();
-						string raw = _source.Substring(t.Position + 1, t.Length - 2);
-						string unescaped = raw.Replace("\\\"", "\"").Replace("\\\\", "\\");
-						return ExecutionResult<SyntaxNode>.Success(new StringNode(t.Position, t.Length, unescaped));
+						return ParseEscapedString(t);
 
 					case TokenType.Identifier:
 					case TokenType.Number:
@@ -126,36 +158,87 @@ namespace UShell.Runtime.Core.Parsing
 						return ExecutionResult<SyntaxNode>.Success(new LiteralNode(t.Position, t.Length, Slice(t)));
 
 					case TokenType.Unknown:
-						return ExecutionResult<SyntaxNode>.Failure("Unrecognized or unclosed symbol.", t.Position);
+						return ExecutionResult<SyntaxNode>.Failure(
+							ShellError.Create(ShellErrorCode.Syntax_UnrecognizedSymbol, t.Position));
 
 					default:
-						return ExecutionResult<SyntaxNode>.Failure($"Unexpected token '{t.Type}'.", t.Position);
+						return ExecutionResult<SyntaxNode>.Failure(
+							ShellError.Create(ShellErrorCode.Syntax_UnexpectedToken, t.Position, t.Type));
 				}
 			}
 
-			private ExecutionResult<SyntaxNode> ParseArray()
+			private ExecutionResult<SyntaxNode> ParseArray(int depth)
 			{
 				Token open = Consume();
 				var elements = new List<SyntaxNode>();
 
 				while (Peek().Type != TokenType.RBracket && Peek().Type != TokenType.EndOfFile)
 				{
-					var el = ParseValue();
+					var el = ParseValue(depth);
 					if (!el.IsSuccess) return el;
+
 					elements.Add(el.Value);
 
 					if (Peek().Type == TokenType.Comma)
+					{
 						Consume();
+					}
 					else if (Peek().Type != TokenType.RBracket)
-						return ExecutionResult<SyntaxNode>.Failure("Expected ',' or ']'.", Peek().Position);
+					{
+						return ExecutionResult<SyntaxNode>.Failure(
+							ShellError.Create(ShellErrorCode.Syntax_ExpectedCommaOrBracket, Peek().Position));
+					}
 				}
 
 				Token close = Consume();
 				if (close.Type != TokenType.RBracket)
-					return ExecutionResult<SyntaxNode>.Failure("Unclosed array: expected ']'.", close.Position);
+				{
+					return ExecutionResult<SyntaxNode>.Failure(
+						ShellError.Create(ShellErrorCode.Syntax_UnclosedArray, close.Position));
+				}
 
 				int len = close.Position + close.Length - open.Position;
-				return ExecutionResult<SyntaxNode>.Success(new ArrayNode(open.Position, len, elements.AsReadOnly()));
+
+				return ExecutionResult<SyntaxNode>.Success(
+					new ArrayNode(open.Position, len, elements.AsReadOnly()));
+			}
+
+			private ExecutionResult<SyntaxNode> ParseEscapedString(Token token)
+			{
+				if (token.Length < 2 || _source[token.Position + token.Length - 1] != '"')
+				{
+					return ExecutionResult<SyntaxNode>.Failure(
+						ShellError.Create(ShellErrorCode.Syntax_UnclosedString, token.Position));
+				}
+
+				string raw = _source.Substring(token.Position + 1, token.Length - 2);
+				var unescaped = new StringBuilder(raw.Length);
+
+				for (int i = 0; i < raw.Length; i++)
+				{
+					if (raw[i] == '\\' && i + 1 < raw.Length)
+					{
+						char next = raw[i + 1];
+						char resolved = next switch
+						{
+							'n' => '\n',
+							't' => '\t',
+							'r' => '\r',
+							'\\' => '\\',
+							'"' => '"',
+							_ => next
+						};
+						unescaped.Append(resolved);
+						i++;
+					}
+					else
+					{
+						unescaped.Append(raw[i]);
+					}
+				}
+
+				return ExecutionResult<SyntaxNode>.Success(
+					new StringNode(token.Position, token.Length, unescaped.ToString()));
 			}
 		}
 	}

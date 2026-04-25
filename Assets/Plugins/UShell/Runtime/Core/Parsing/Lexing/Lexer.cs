@@ -19,12 +19,16 @@ namespace UShell.Runtime.Core.Parsing.Lexing
 			SkipWhitespace();
 
 			if (_position >= _input.Length)
+			{
 				return new Token(TokenType.EndOfFile, _position, 0);
+			}
 
 			char current = _input[_position];
 
 			if (current == '-' && IsNamedArgumentMinus())
+			{
 				return ConsumeSingleCharToken(TokenType.Minus);
+			}
 
 			return current switch
 			{
@@ -45,7 +49,9 @@ namespace UShell.Runtime.Core.Parsing.Lexing
 		private void SkipWhitespace()
 		{
 			while (_position < _input.Length && char.IsWhiteSpace(_input[_position]))
+			{
 				_position++;
+			}
 		}
 
 		private Token ConsumeSingleCharToken(TokenType type)
@@ -61,16 +67,19 @@ namespace UShell.Runtime.Core.Parsing.Lexing
 			while (_position < _input.Length)
 			{
 				char c = _input[_position];
+
 				if (c == '\\' && _position + 1 < _input.Length)
 				{
 					_position += 2;
 					continue;
 				}
+
 				if (c == '"')
 				{
 					_position++;
 					return new Token(TokenType.String, start, _position - start);
 				}
+
 				_position++;
 			}
 
@@ -83,7 +92,9 @@ namespace UShell.Runtime.Core.Parsing.Lexing
 			bool hasLetters = false;
 
 			if (_position < _input.Length && _input[_position] == '-')
+			{
 				_position++;
+			}
 
 			while (_position < _input.Length
 				   && !char.IsWhiteSpace(_input[_position])
@@ -91,7 +102,9 @@ namespace UShell.Runtime.Core.Parsing.Lexing
 			{
 				char c = _input[_position];
 				if (char.IsLetter(c) || c == '_' || c == '.')
-					hasLetters = char.IsLetter(c) || c == '_';
+				{
+					hasLetters = true;
+				}
 				_position++;
 			}
 
@@ -105,7 +118,6 @@ namespace UShell.Runtime.Core.Parsing.Lexing
 			return new Token(type, start, _position - start);
 		}
 
-		private static bool IsDelimiter(char c) =>
-			c == '[' || c == ']' || c == ',' || c == '"';
+		private static bool IsDelimiter(char c) => c == '[' || c == ']' || c == ',' || c == '"';
 	}
 }

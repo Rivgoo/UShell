@@ -1,36 +1,28 @@
 ﻿using System;
+using UShell.Runtime.Core.Diagnostics;
 
 namespace UShell.Runtime.Core.Execution
 {
 	public readonly struct ExecutionResult
 	{
-		public bool IsSuccess { get; }
-		public string ErrorMessage { get; }
-		public int ErrorPosition { get; }
+		public ShellError? Error { get; }
+		public bool IsSuccess => !Error.HasValue;
 
-		private ExecutionResult(bool isSuccess, string errorMessage, int errorPosition)
+		private ExecutionResult(ShellError? error)
 		{
-			IsSuccess = isSuccess;
-			ErrorMessage = errorMessage;
-			ErrorPosition = errorPosition;
+			Error = error;
 		}
 
-		public static ExecutionResult Success() =>
-			new ExecutionResult(true, string.Empty, -1);
+		public static ExecutionResult Success() => new ExecutionResult(null);
 
-		public static ExecutionResult Failure(string message, int errorPosition = -1)
-		{
-			if (string.IsNullOrWhiteSpace(message))
-				throw new ArgumentException("Failure message cannot be null or empty.", nameof(message));
-			return new ExecutionResult(false, message, errorPosition);
-		}
+		public static ExecutionResult Failure(ShellError error) => new ExecutionResult(error);
 	}
 
 	public readonly struct ExecutionResult<T>
 	{
-		public bool IsSuccess { get; }
-		public string ErrorMessage { get; }
-		public int ErrorPosition { get; }
+		public ShellError? Error { get; }
+		public bool IsSuccess => !Error.HasValue;
+
 		private readonly T _value;
 
 		public T Value
@@ -38,27 +30,21 @@ namespace UShell.Runtime.Core.Execution
 			get
 			{
 				if (!IsSuccess)
+				{
 					throw new InvalidOperationException("Cannot access value of a failed result.");
+				}
 				return _value;
 			}
 		}
 
-		private ExecutionResult(bool isSuccess, T value, string errorMessage, int errorPosition)
+		private ExecutionResult(T value, ShellError? error)
 		{
-			IsSuccess = isSuccess;
 			_value = value;
-			ErrorMessage = errorMessage;
-			ErrorPosition = errorPosition;
+			Error = error;
 		}
 
-		public static ExecutionResult<T> Success(T value) =>
-			new ExecutionResult<T>(true, value, string.Empty, -1);
+		public static ExecutionResult<T> Success(T value) => new ExecutionResult<T>(value, null);
 
-		public static ExecutionResult<T> Failure(string message, int errorPosition = -1)
-		{
-			if (string.IsNullOrWhiteSpace(message))
-				throw new ArgumentException("Failure message cannot be null or empty.", nameof(message));
-			return new ExecutionResult<T>(false, default!, message, errorPosition);
-		}
+		public static ExecutionResult<T> Failure(ShellError error) => new ExecutionResult<T>(default!, error);
 	}
 }

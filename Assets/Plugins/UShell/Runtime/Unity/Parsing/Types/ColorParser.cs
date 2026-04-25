@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UShell.Runtime.Core.Diagnostics;
 using UShell.Runtime.Core.Execution;
 using UShell.Runtime.Core.Parsing.Types;
 
@@ -20,7 +21,9 @@ namespace UShell.Runtime.Unity.Parsing.Types
 				return ExecutionResult<Color>.Success(namedColor);
 			}
 
-			return ExecutionResult<Color>.Failure($"Cannot parse '{input}' as Color. Expected hex format (e.g., #FF0000) or valid name.");
+			return ExecutionResult<Color>.Failure(
+				ShellError.Create(ShellErrorCode.Bind_CustomError, -1,
+					$"Cannot parse '{input}' as Color. Expected hex format (e.g., #FF0000) or valid name."));
 		}
 	}
 }

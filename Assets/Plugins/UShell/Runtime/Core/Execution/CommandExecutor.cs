@@ -1,6 +1,8 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using UShell.Runtime.Core.Abstractions;
 using UShell.Runtime.Core.Commands;
+using UShell.Runtime.Core.Diagnostics;
 using UShell.Runtime.Core.Execution.Binding;
 using UShell.Runtime.Core.Parsing;
 using UShell.Runtime.Core.Parsing.Syntax;
@@ -18,36 +20,43 @@ namespace UShell.Runtime.Core.Execution
 			_binder = binder ?? throw new ArgumentNullException(nameof(binder));
 		}
 
-		public ExecutionResult Execute(string input)
+		public ExecutionResult<object?> Execute(string input)
 		{
 			var parsed = Parser.Parse(input);
 			if (!parsed.IsSuccess)
-				return ExecutionResult.Failure($"Syntax Error: {parsed.ErrorMessage}", parsed.ErrorPosition);
+			{
+				return ExecutionResult<object?>.Failure(parsed.Error!.Value);
+			}
 
 			CommandNode node = parsed.Value;
 
 			if (!_registry.TryGetCommand(node.CommandName, out CommandSignature sig))
-				return ExecutionResult.Failure(
-					$"Unknown command '{node.CommandName}'. Type 'help' to list commands.", node.StartIndex);
+			{
+				return ExecutionResult<object?>.Failure(
+					ShellError.Create(ShellErrorCode.Execute_CommandNotFound, node.StartIndex, node.CommandName));
+			}
 
 			var bound = _binder.BindArguments(sig.Parameters, node.Arguments);
 			if (!bound.IsSuccess)
-				return ExecutionResult.Failure($"Argument Error: {bound.ErrorMessage}", bound.ErrorPosition);
+			{
+				return ExecutionResult<object?>.Failure(bound.Error!.Value);
+			}
 
 			return Invoke(sig, bound.Value, node.StartIndex);
 		}
 
-		private static ExecutionResult Invoke(CommandSignature sig, object?[] args, int startIndex)
+		private static ExecutionResult<object?> Invoke(CommandSignature sig, object?[] args, int startIndex)
 		{
 			try
 			{
-				sig.Invoker.Invoke(args);
-				return ExecutionResult.Success();
+				object? result = sig.Invoker.Invoke(args);
+				return ExecutionResult<object?>.Success(result);
 			}
 			catch (Exception ex)
 			{
 				Exception inner = ex.InnerException ?? ex;
-				return ExecutionResult.Failure($"Execution Error: {inner.Message}", startIndex);
+				return ExecutionResult<object?>.Failure(
+					ShellError.Create(ShellErrorCode.Execute_Exception, startIndex, inner.Message));
 			}
 		}
 	}

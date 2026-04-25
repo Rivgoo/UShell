@@ -1,4 +1,4 @@
-﻿using System;
+﻿using UShell.Runtime.Core.Diagnostics;
 using UShell.Runtime.Core.Execution;
 
 namespace UShell.Runtime.Core.Parsing.Types.BuiltIn
@@ -15,7 +15,8 @@ namespace UShell.Runtime.Core.Parsing.Types.BuiltIn
 			if (input == "1") return ExecutionResult<bool>.Success(true);
 			if (input == "0") return ExecutionResult<bool>.Success(false);
 
-			return ExecutionResult<bool>.Failure($"Cannot parse '{input}' as a boolean.");
+			return ExecutionResult<bool>.Failure(
+				ShellError.Create(ShellErrorCode.Bind_TypeMismatch, -1, input, "bool"));
 		}
 	}
 }

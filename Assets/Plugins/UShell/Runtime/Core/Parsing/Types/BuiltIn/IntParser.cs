@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using UShell.Runtime.Core.Diagnostics;
 using UShell.Runtime.Core.Execution;
 
 namespace UShell.Runtime.Core.Parsing.Types.BuiltIn
@@ -12,7 +13,8 @@ namespace UShell.Runtime.Core.Parsing.Types.BuiltIn
 				return ExecutionResult<int>.Success(result);
 			}
 
-			return ExecutionResult<int>.Failure($"Cannot parse '{input}' as an integer.");
+			return ExecutionResult<int>.Failure(
+				ShellError.Create(ShellErrorCode.Bind_TypeMismatch, -1, input, "int"));
 		}
 	}
 }

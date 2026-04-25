@@ -3,6 +3,6 @@ namespace UShell.Runtime.Core.Execution.Invocation
 {
 	public interface ICommandInvoker
 	{
-		void Invoke(object?[] args);
+		object? Invoke(object?[] args);
 	}
 }

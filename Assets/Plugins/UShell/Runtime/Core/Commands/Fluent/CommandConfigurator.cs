@@ -1,8 +1,10 @@
 ﻿#nullable enable
 using System;
 using System.Collections.Generic;
-using UShell.Runtime.Core.Commands.Exceptions;
+using System.Threading.Tasks;
+using UShell.Runtime.Core.Exceptions;
 using UShell.Runtime.Core.Execution.Invocation;
+using UShell.Runtime.Core.Registry;
 
 namespace UShell.Runtime.Core.Commands.Fluent
 {
@@ -18,6 +20,7 @@ namespace UShell.Runtime.Core.Commands.Fluent
 
 		public CommandConfigurator(string name)
 		{
+			CommandValidator.ValidateCommandName(name);
 			_name = name;
 		}
 
@@ -29,11 +32,7 @@ namespace UShell.Runtime.Core.Commands.Fluent
 
 		public ICommandConfigurator WithAlias(string alias)
 		{
-			if (string.IsNullOrWhiteSpace(alias))
-			{
-				throw new ShellConfigurationException($"Alias for command '{_name}' cannot be empty.");
-			}
-
+			CommandValidator.ValidateCommandName(alias);
 			_aliases.Add(alias);
 			return this;
 		}
@@ -46,53 +45,38 @@ namespace UShell.Runtime.Core.Commands.Fluent
 
 		public ICommandConfigurator AddParameter<T>(string name)
 		{
-			ValidateParameterName(name);
+			CommandValidator.ValidateParameterName(_name, name);
 			_parameters.Add(new CommandParameter(name, typeof(T), false, null));
 			return this;
 		}
 
 		public ICommandConfigurator AddOptionalParameter<T>(string name, T defaultValue)
 		{
-			ValidateParameterName(name);
+			CommandValidator.ValidateParameterName(_name, name);
 			_parameters.Add(new CommandParameter(name, typeof(T), true, defaultValue));
 			return this;
 		}
 
-		public void Executes(Action action)
-		{
-			ValidateTypes();
-			AssignInvoker(new ActionInvoker(action));
-		}
+		public void Executes(Action action) { ValidateTypes(); AssignInvoker(new ActionInvoker(action)); }
+		public void Executes<T1>(Action<T1> action) { ValidateTypes(typeof(T1)); AssignInvoker(new ActionInvoker<T1>(action)); }
+		public void Executes<T1, T2>(Action<T1, T2> action) { ValidateTypes(typeof(T1), typeof(T2)); AssignInvoker(new ActionInvoker<T1, T2>(action)); }
+		public void Executes<T1, T2, T3>(Action<T1, T2, T3> action) { ValidateTypes(typeof(T1), typeof(T2), typeof(T3)); AssignInvoker(new ActionInvoker<T1, T2, T3>(action)); }
+		public void Executes<T1, T2, T3, T4>(Action<T1, T2, T3, T4> action) { ValidateTypes(typeof(T1), typeof(T2), typeof(T3), typeof(T4)); AssignInvoker(new ActionInvoker<T1, T2, T3, T4>(action)); }
+		public void Executes<T1, T2, T3, T4, T5>(Action<T1, T2, T3, T4, T5> action) { ValidateTypes(typeof(T1), typeof(T2), typeof(T3), typeof(T4), typeof(T5)); AssignInvoker(new ActionInvoker<T1, T2, T3, T4, T5>(action)); }
 
-		public void Executes<T1>(Action<T1> action)
-		{
-			ValidateTypes(typeof(T1));
-			AssignInvoker(new ActionInvoker<T1>(action));
-		}
+		public void ExecutesReturning<TResult>(Func<TResult> func) { ValidateTypes(); AssignInvoker(new FuncInvoker<TResult>(func)); }
+		public void ExecutesReturning<T1, TResult>(Func<T1, TResult> func) { ValidateTypes(typeof(T1)); AssignInvoker(new FuncInvoker<T1, TResult>(func)); }
+		public void ExecutesReturning<T1, T2, TResult>(Func<T1, T2, TResult> func) { ValidateTypes(typeof(T1), typeof(T2)); AssignInvoker(new FuncInvoker<T1, T2, TResult>(func)); }
+		public void ExecutesReturning<T1, T2, T3, TResult>(Func<T1, T2, T3, TResult> func) { ValidateTypes(typeof(T1), typeof(T2), typeof(T3)); AssignInvoker(new FuncInvoker<T1, T2, T3, TResult>(func)); }
+		public void ExecutesReturning<T1, T2, T3, T4, TResult>(Func<T1, T2, T3, T4, TResult> func) { ValidateTypes(typeof(T1), typeof(T2), typeof(T3), typeof(T4)); AssignInvoker(new FuncInvoker<T1, T2, T3, T4, TResult>(func)); }
+		public void ExecutesReturning<T1, T2, T3, T4, T5, TResult>(Func<T1, T2, T3, T4, T5, TResult> func) { ValidateTypes(typeof(T1), typeof(T2), typeof(T3), typeof(T4), typeof(T5)); AssignInvoker(new FuncInvoker<T1, T2, T3, T4, T5, TResult>(func)); }
 
-		public void Executes<T1, T2>(Action<T1, T2> action)
-		{
-			ValidateTypes(typeof(T1), typeof(T2));
-			AssignInvoker(new ActionInvoker<T1, T2>(action));
-		}
-
-		public void Executes<T1, T2, T3>(Action<T1, T2, T3> action)
-		{
-			ValidateTypes(typeof(T1), typeof(T2), typeof(T3));
-			AssignInvoker(new ActionInvoker<T1, T2, T3>(action));
-		}
-
-		public void Executes<T1, T2, T3, T4>(Action<T1, T2, T3, T4> action)
-		{
-			ValidateTypes(typeof(T1), typeof(T2), typeof(T3), typeof(T4));
-			AssignInvoker(new ActionInvoker<T1, T2, T3, T4>(action));
-		}
-
-		public void Executes<T1, T2, T3, T4, T5>(Action<T1, T2, T3, T4, T5> action)
-		{
-			ValidateTypes(typeof(T1), typeof(T2), typeof(T3), typeof(T4), typeof(T5));
-			AssignInvoker(new ActionInvoker<T1, T2, T3, T4, T5>(action));
-		}
+		public void ExecutesAsync(Func<Task> action) { ValidateTypes(); AssignInvoker(new FuncInvoker<Task>(action)); }
+		public void ExecutesAsync<T1>(Func<T1, Task> action) { ValidateTypes(typeof(T1)); AssignInvoker(new FuncInvoker<T1, Task>(action)); }
+		public void ExecutesAsync<T1, T2>(Func<T1, T2, Task> action) { ValidateTypes(typeof(T1), typeof(T2)); AssignInvoker(new FuncInvoker<T1, T2, Task>(action)); }
+		public void ExecutesAsync<T1, T2, T3>(Func<T1, T2, T3, Task> action) { ValidateTypes(typeof(T1), typeof(T2), typeof(T3)); AssignInvoker(new FuncInvoker<T1, T2, T3, Task>(action)); }
+		public void ExecutesAsync<T1, T2, T3, T4>(Func<T1, T2, T3, T4, Task> action) { ValidateTypes(typeof(T1), typeof(T2), typeof(T3), typeof(T4)); AssignInvoker(new FuncInvoker<T1, T2, T3, T4, Task>(action)); }
+		public void ExecutesAsync<T1, T2, T3, T4, T5>(Func<T1, T2, T3, T4, T5, Task> action) { ValidateTypes(typeof(T1), typeof(T2), typeof(T3), typeof(T4), typeof(T5)); AssignInvoker(new FuncInvoker<T1, T2, T3, T4, T5, Task>(action)); }
 
 		private void AssignInvoker(ICommandInvoker invoker)
 		{
@@ -113,14 +97,6 @@ namespace UShell.Runtime.Core.Commands.Fluent
 				_tags,
 				new List<CommandParameter>(_parameters).AsReadOnly(),
 				_invoker);
-		}
-
-		private void ValidateParameterName(string name)
-		{
-			if (string.IsNullOrWhiteSpace(name))
-			{
-				throw new ShellConfigurationException($"Parameter name in command '{_name}' cannot be empty.");
-			}
 		}
 
 		private void ValidateTypes(params Type[] expectedTypes)

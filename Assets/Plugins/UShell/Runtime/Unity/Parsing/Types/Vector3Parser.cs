@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using UnityEngine;
+using UShell.Runtime.Core.Diagnostics;
 using UShell.Runtime.Core.Execution;
 using UShell.Runtime.Core.Parsing.Types;
 
@@ -14,7 +15,9 @@ namespace UShell.Runtime.Unity.Parsing.Types
 
 			if (parts.Length != 3)
 			{
-				return ExecutionResult<Vector3>.Failure($"Cannot parse '{input}' as Vector3. Expected format: 'x,y,z' or 'x y z'.");
+				return ExecutionResult<Vector3>.Failure(
+					ShellError.Create(ShellErrorCode.Bind_CustomError, -1,
+						$"Cannot parse '{input}' as Vector3. Expected format: 'x,y,z' or 'x y z'."));
 			}
 
 			if (float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out float x) &&
@@ -24,7 +27,8 @@ namespace UShell.Runtime.Unity.Parsing.Types
 				return ExecutionResult<Vector3>.Success(new Vector3(x, y, z));
 			}
 
-			return ExecutionResult<Vector3>.Failure($"Cannot parse '{input}' as Vector3. Invalid number format.");
+			return ExecutionResult<Vector3>.Failure(
+				ShellError.Create(ShellErrorCode.Bind_TypeMismatch, -1, input, "Vector3"));
 		}
 	}
 }

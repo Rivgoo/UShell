@@ -16,7 +16,7 @@ namespace UShell.Runtime.Core.Parsing.Types
 				return ExecutionResult<object>.Success(result.Value!);
 			}
 
-			return ExecutionResult<object>.Failure(result.ErrorMessage);
+			return ExecutionResult<object>.Failure(result.Error!.Value);
 		}
 
 		public abstract ExecutionResult<T> ParseTyped(string input);
