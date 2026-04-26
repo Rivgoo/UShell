@@ -15,6 +15,7 @@ namespace UShell.Runtime.Unity.UI
 		[SerializeField] private UShellScrollView _scrollView = null!;
 		[SerializeField] private UShellInputField _inputField = null!;
 		[SerializeField] private UShellSuggestionsContainer _suggestionsContainer = null!;
+		[SerializeField] private UShellLogStatsView _statsView = null!;
 		[SerializeField] private Canvas _canvas = null!;
 
 		private IReadOnlyList<CommandSuggestion> _currentSuggestions = Array.Empty<CommandSuggestion>();
@@ -31,13 +32,16 @@ namespace UShell.Runtime.Unity.UI
 			_suggestionsContainer.Initialize(configuration);
 
 			_inputField.OnInputChanged += HandleInputChanged;
+			_scrollView.OnStatsChanged += HandleStatsChanged;
 
+			_statsView.UpdateStats(0, 0, 0);
 			Hide();
 		}
 
 		public void Dispose()
 		{
 			_inputField.OnInputChanged -= HandleInputChanged;
+			_scrollView.OnStatsChanged -= HandleStatsChanged;
 		}
 
 		public void Show()
@@ -98,6 +102,11 @@ namespace UShell.Runtime.Unity.UI
 		private void HandleInputChanged(string input)
 		{
 			OnInputChanged.Invoke(input);
+		}
+
+		private void HandleStatsChanged(int infoCount, int warningCount, int errorCount)
+		{
+			_statsView.UpdateStats(infoCount, warningCount, errorCount);
 		}
 	}
 }

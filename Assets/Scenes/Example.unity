@@ -1374,12 +1374,12 @@ GameObject:
   - component: {fileID: 806785763}
   - component: {fileID: 806785762}
   - component: {fileID: 806785768}
-  - component: {fileID: 806785767}
   - component: {fileID: 806785766}
+  - component: {fileID: 806785767}
   m_Layer: 5
   m_Name: UShell Console
   m_TagString: Untagged
-  m_Icon: {fileID: 0}
+  m_Icon: {fileID: 2800000, guid: f3938496ea0348044b9d5e6604654c8a, type: 3}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -1508,6 +1508,7 @@ MonoBehaviour:
   _scrollView: {fileID: 1280599490}
   _inputField: {fileID: 1354057941}
   _suggestionsContainer: {fileID: 691078497}
+  _statsView: {fileID: 2003749629}
   _canvas: {fileID: 806785764}
 --- !u!1 &816736259
 GameObject:
@@ -2118,7 +2119,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 0
+  m_text: 999
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -3311,6 +3312,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2003749628}
+  - component: {fileID: 2003749629}
   m_Layer: 5
   m_Name: Stats Container
   m_TagString: Untagged
@@ -3340,6 +3342,21 @@ RectTransform:
   m_AnchoredPosition: {x: -110, y: 0}
   m_SizeDelta: {x: 170, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &2003749629
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2003749627}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd7fe71159684394c8816196faee3753, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UShell.Runtime.Unity::UShell.Runtime.Unity.UI.Components.UShellLogStatsView
+  _infoText: {fileID: 2099473428}
+  _warningText: {fileID: 1056636449}
+  _errorText: {fileID: 1270741815}
 --- !u!1 &2099473426
 GameObject:
   m_ObjectHideFlags: 0
@@ -3397,7 +3414,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 0
+  m_text: 999
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}

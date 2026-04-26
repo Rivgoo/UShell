@@ -12,6 +12,8 @@ namespace UShell.Runtime.Unity.UI.Components
 	[RequireComponent(typeof(RectTransform))]
 	public sealed class UShellLogItem : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 	{
+		public LogType CurrentLogType { get; private set; }
+
 		[SerializeField] private Image _iconImage = null!;
 		[SerializeField] private TextMeshProUGUI _textComponent = null!;
 		[SerializeField] private Button _copyButton = null!;
@@ -51,6 +53,7 @@ namespace UShell.Runtime.Unity.UI.Components
 
 		public void ApplyData(LogEntry log, UShellUIConfiguration configuration)
 		{
+			CurrentLogType = log.Type;
 			_currentMessage = log.Message;
 
 			string displayText = _currentMessage;
