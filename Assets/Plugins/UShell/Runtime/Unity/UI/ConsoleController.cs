@@ -52,8 +52,8 @@ namespace UShell.Runtime.Unity.UI
 			_view.OnInputChanged += InputChanged;
 			_printer.OnLogAdded += LogAdded;
 
-			BuiltInShellProfile.OnClearRequested += _view.ClearLogs;
-			BuiltInShellProfile.OnCloseRequested += CloseConsole;
+			ConsoleManagementProfile.OnClearRequested += _view.ClearLogs;
+			ConsoleManagementProfile.OnCloseRequested += CloseConsole;
 		}
 
 		private void UnbindEvents()
@@ -68,8 +68,8 @@ namespace UShell.Runtime.Unity.UI
 			_view.OnInputChanged -= InputChanged;
 			_printer.OnLogAdded -= LogAdded;
 
-			BuiltInShellProfile.OnClearRequested -= _view.ClearLogs;
-			BuiltInShellProfile.OnCloseRequested -= CloseConsole;
+			ConsoleManagementProfile.OnClearRequested -= _view.ClearLogs;
+			ConsoleManagementProfile.OnCloseRequested -= CloseConsole;
 
 			_view.Dispose();
 		}

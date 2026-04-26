@@ -53,13 +53,6 @@ namespace UShell.Runtime.Unity.Bootstrapping
 
 			Func<IReadOnlyList<string>> historyProvider = () => _controller?.History ?? Array.Empty<string>();
 
-			var builtInProfile = BuiltInProfileConfigurator.Create(
-				_printer, 
-				registryProxy, 
-				Application.version, 
-				_activeEnvironment, 
-				historyProvider);
-
 			IShellCore core = new ShellBuilder(_activeEnvironment)
 				.AddTypeParser(new Vector2Parser())
 				.AddTypeParser(new Vector3Parser())
@@ -67,7 +60,10 @@ namespace UShell.Runtime.Unity.Bootstrapping
 				.AddTypeParser(new QuaternionParser())
 				.AddTypeParser(new ColorParser())
 				.AddTypeParser(new GameObjectParser())
-				.AddProfile(builtInProfile)
+				.AddProfile(new ConsoleManagementProfile(_printer, registryProxy, historyProvider))
+				.AddProfile(new EnvironmentInfoProfile(_printer, Application.version, _activeEnvironment))
+				.AddProfile(new MathUtilityProfile(_printer))
+				.AddProfile(new RuntimeDiagnosticsProfile(_printer))
 				.Build();
 
 			registryProxy.Target = core.Registry;
@@ -85,8 +81,8 @@ namespace UShell.Runtime.Unity.Bootstrapping
 
 		private IInputProvider GetInputProvider()
 		{
-			var provider = GetComponent<InputSystemProvider>();
-			if (provider != null) return provider;
+			if (TryGetComponent<InputSystemProvider>(out var provider))
+				return provider;
 
 			return gameObject.AddComponent<InputSystemProvider>();
 		}
