@@ -523,6 +523,22 @@ PrefabInstance:
       propertyPath: m_Name
       value: ==[ UShell Console ]==
       objectReference: {fileID: 0}
+    - target: {fileID: 2941211401787221489, guid: f04e0fa2dfee71045ad545bc098eac89, type: 3}
+      propertyPath: m_Value
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4182283344782214673, guid: f04e0fa2dfee71045ad545bc098eac89, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4182283344782214673, guid: f04e0fa2dfee71045ad545bc098eac89, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657217998883706696, guid: f04e0fa2dfee71045ad545bc098eac89, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8001652735443451115, guid: f04e0fa2dfee71045ad545bc098eac89, type: 3}
       propertyPath: m_Pivot.x
       value: 0

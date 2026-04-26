@@ -721,9 +721,9 @@ GameObject:
   - component: {fileID: 6581100810757686818}
   - component: {fileID: 802001741347842366}
   - component: {fileID: 6612207748686746854}
+  - component: {fileID: 3010429340870876326}
   - component: {fileID: 4374397686162251984}
   - component: {fileID: -2036469836843360128}
-  - component: {fileID: 3010429340870876326}
   m_Layer: 5
   m_Name: ==[ UShell Console ]==
   m_TagString: Untagged
@@ -814,6 +814,18 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
+--- !u!114 &3010429340870876326
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2237886923815305496}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3be64e192adfc29419c944d31c57c53b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UShell.Runtime.Unity::UShell.Runtime.Unity.Bootstrapping.UShellManager
 --- !u!114 &4374397686162251984
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -840,18 +852,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: UShell.Runtime.Unity::UShell.Runtime.Unity.Bootstrapping.ComponentShellBootstrapper
   _activeEnvironment: 2
   _mirrorLogsToUnityConsole: 0
---- !u!114 &3010429340870876326
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2237886923815305496}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3be64e192adfc29419c944d31c57c53b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UShell.Runtime.Unity::UShell.Runtime.Unity.Bootstrapping.UShellManager
+  _includeConsoleManagementProfile: 1
+  _includeMathUtilityProfile: 1
+  _includeEnvironmentInfoProfile: 1
+  _includeRuntimeDiagnosticsProfile: 1
 --- !u!1 &2298879796516335347
 GameObject:
   m_ObjectHideFlags: 0
