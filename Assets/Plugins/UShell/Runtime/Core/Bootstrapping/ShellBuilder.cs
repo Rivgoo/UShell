@@ -5,6 +5,7 @@ using UShell.Runtime.Core.Commands;
 using UShell.Runtime.Core.Commands.Fluent;
 using UShell.Runtime.Core.Execution;
 using UShell.Runtime.Core.Execution.Binding;
+using UShell.Runtime.Core.History;
 using UShell.Runtime.Core.Parsing.Types;
 using UShell.Runtime.Core.Parsing.Types.BuiltIn;
 using UShell.Runtime.Core.Registry;
@@ -16,10 +17,14 @@ namespace UShell.Runtime.Core.Bootstrapping
 		private readonly EnvironmentTag _activeEnvironment;
 		private readonly List<IShellProfile> _profiles = new();
 		private readonly TypeParserRegistry _parserRegistry = new();
+		private readonly CommandHistory _history;
 
-		public ShellBuilder(EnvironmentTag activeEnvironment)
+		public ICommandHistory History => _history;
+
+		public ShellBuilder(EnvironmentTag activeEnvironment, int historyCapacity = 150)
 		{
 			_activeEnvironment = activeEnvironment;
+			_history = new CommandHistory(historyCapacity);
 
 			_parserRegistry.Register(new IntParser());
 			_parserRegistry.Register(new FloatParser());
@@ -57,7 +62,7 @@ namespace UShell.Runtime.Core.Bootstrapping
 			var argumentBinder = new ArgumentBinder(_parserRegistry);
 			var executor = new CommandExecutor(commandRegistry, argumentBinder);
 
-			return new ShellCore(executor, commandRegistry);
+			return new ShellCore(executor, commandRegistry, _history);
 		}
 	}
 }

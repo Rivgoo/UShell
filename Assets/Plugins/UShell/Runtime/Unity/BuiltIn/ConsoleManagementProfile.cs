@@ -6,6 +6,7 @@ using System.Text;
 using UShell.Runtime.Core.Abstractions;
 using UShell.Runtime.Core.Commands;
 using UShell.Runtime.Core.Commands.Fluent;
+using UShell.Runtime.Core.History;
 using UShell.Runtime.Core.Output;
 using UShell.Runtime.Core.Output.Formatting;
 
@@ -15,19 +16,18 @@ namespace UShell.Runtime.Unity.BuiltIn
 	{
 		public static event Action? OnClearRequested;
 		public static event Action? OnCloseRequested;
-		public static event Action? OnHistoryClearRequested;
 
 		private readonly ICommandRegistry _registry;
-		private readonly Func<IReadOnlyList<string>> _getCommandHistory;
+		private readonly ICommandHistory _history;
 
 		public ConsoleManagementProfile(
 			IConsolePrinter printer,
 			ICommandRegistry registry,
-			Func<IReadOnlyList<string>> getCommandHistory)
+			ICommandHistory history)
 			: base(printer)
 		{
 			_registry = registry ?? throw new ArgumentNullException(nameof(registry));
-			_getCommandHistory = getCommandHistory ?? throw new ArgumentNullException(nameof(getCommandHistory));
+			_history = history ?? throw new ArgumentNullException(nameof(history));
 		}
 
 		protected override void Configure(ICommandBuilder builder)
@@ -64,7 +64,7 @@ namespace UShell.Runtime.Unity.BuiltIn
 				.WithAlias("hc")
 				.Executes(() =>
 				{
-					OnHistoryClearRequested?.Invoke();
+					_history.Clear();
 					PrintSuccess("Command history cleared.");
 				});
 
@@ -191,15 +191,15 @@ namespace UShell.Runtime.Unity.BuiltIn
 
 		private void ShowHistory(int count)
 		{
-			IReadOnlyList<string>? history = _getCommandHistory();
+			IReadOnlyList<string> entries = _history.Entries;
 
-			if (history == null || history.Count == 0)
+			if (entries.Count == 0)
 			{
 				PrintWarning("Command history is empty.");
 				return;
 			}
 
-			int total = history.Count;
+			int total = entries.Count;
 			int start = Math.Max(0, total - Math.Abs(count));
 			var sb = new StringBuilder();
 
@@ -208,7 +208,7 @@ namespace UShell.Runtime.Unity.BuiltIn
 			for (int i = start; i < total; i++)
 			{
 				string idx = RichText.Color($"  {i + 1,3}  ", ShellPalette.TextDim);
-				string cmd = RichText.Color(history[i], ShellPalette.TextPrimary);
+				string cmd = RichText.Color(entries[i], ShellPalette.TextPrimary);
 				sb.AppendLine(idx + cmd);
 			}
 

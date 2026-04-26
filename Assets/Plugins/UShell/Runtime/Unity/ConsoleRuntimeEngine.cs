@@ -1,31 +1,27 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using UShell.Runtime.Core;
-using UShell.Runtime.Unity.BuiltIn;
 using UShell.Runtime.Core.Commands;
 using UShell.Runtime.Core.Output;
+using UShell.Runtime.Unity.BuiltIn;
 using UShell.Runtime.Unity.Inputs;
-using UShell.Runtime.Unity.Output;
+using UShell.Runtime.Unity.UI;
 
-namespace UShell.Runtime.Unity.UI
+namespace UShell.Runtime.Unity
 {
-	internal sealed class ConsoleController : IDisposable
+	internal sealed class ConsoleRuntimeEngine : IDisposable
 	{
 		private readonly IShellCore _core;
 		private readonly ConsoleView _view;
 		private readonly IInputProvider _input;
-		private readonly UnityConsolePrinter _printer;
+		private readonly IConsolePrinter _printer;
 
-		private readonly List<string> _history = new(50);
-		private int _historyIndex = -1;
-
-		public IReadOnlyList<string> History => _history;
-
-		public ConsoleController(
+		public ConsoleRuntimeEngine(
 			IShellCore core,
 			ConsoleView view,
 			IInputProvider input,
-			UnityConsolePrinter printer)
+			IConsolePrinter printer)
 		{
 			_core = core ?? throw new ArgumentNullException(nameof(core));
 			_view = view ?? throw new ArgumentNullException(nameof(view));
@@ -94,10 +90,7 @@ namespace UShell.Runtime.Unity.UI
 
 		private void Escape()
 		{
-			if (_view.IsVisible)
-			{
-				CloseConsole();
-			}
+			if (_view.IsVisible) CloseConsole();
 		}
 
 		private void Submit()
@@ -112,7 +105,9 @@ namespace UShell.Runtime.Unity.UI
 			}
 
 			_printer.Print(new LogEntry(input, LogType.Standard));
-			AddToHistory(input);
+
+			_core.History.Add(input);
+			_core.History.ResetNavigation();
 
 			_view.ClearInput();
 			_view.RenderAutocomplete(Array.Empty<CommandSuggestion>());
@@ -126,8 +121,6 @@ namespace UShell.Runtime.Unity.UI
 
 		private void InputChanged(string input)
 		{
-			_historyIndex = -1;
-
 			if (string.IsNullOrWhiteSpace(input))
 			{
 				_view.RenderAutocomplete(Array.Empty<CommandSuggestion>());
@@ -164,25 +157,23 @@ namespace UShell.Runtime.Unity.UI
 
 		private void HistoryUp()
 		{
-			if (!_view.IsVisible || _history.Count == 0) return;
+			if (!_view.IsVisible) return;
 
-			_historyIndex = _historyIndex <= 0 ? _history.Count - 1 : _historyIndex - 1;
-			_view.SetInputText(_history[_historyIndex]);
+			string? previous = _core.History.GetPrevious(_view.CurrentInput);
+			if (previous != null)
+			{
+				_view.SetInputText(previous);
+			}
 		}
 
 		private void HistoryDown()
 		{
-			if (!_view.IsVisible || _history.Count == 0 || _historyIndex == -1) return;
+			if (!_view.IsVisible) return;
 
-			if (_historyIndex < _history.Count - 1)
+			string? next = _core.History.GetNext();
+			if (next != null)
 			{
-				_historyIndex++;
-				_view.SetInputText(_history[_historyIndex]);
-			}
-			else
-			{
-				_historyIndex = -1;
-				_view.ClearInput();
+				_view.SetInputText(next);
 			}
 		}
 
@@ -201,15 +192,6 @@ namespace UShell.Runtime.Unity.UI
 		private void LogAdded(LogEntry log)
 		{
 			_view.AddLogEntry(log);
-		}
-
-		private void AddToHistory(string input)
-		{
-			_history.Remove(input);
-			_history.Add(input);
-
-			if (_history.Count > 100) _history.RemoveAt(0);
-			_historyIndex = -1;
 		}
 
 		private static ReadOnlySpan<char> GetFirstWord(string input)

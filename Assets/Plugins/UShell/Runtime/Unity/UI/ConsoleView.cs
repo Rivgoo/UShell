@@ -8,11 +8,14 @@ using UShell.Runtime.Unity.UI.Configuration;
 
 namespace UShell.Runtime.Unity.UI
 {
+	[DisallowMultipleComponent]
 	public sealed class ConsoleView : MonoBehaviour, IDisposable
 	{
-		public event Action<string> OnInputChanged = delegate { };
+		public event Action<string> OnInputChanged;
 
-		[SerializeField] private UShellScrollView _scrollView = null!;
+		[SerializeField] private UShellUIConfiguration _configuration = null!;
+
+		[SerializeField, Space] private UShellScrollView _scrollView = null!;
 		[SerializeField] private UShellInputField _inputField = null!;
 		[SerializeField] private UShellSuggestionsContainer _suggestionsContainer = null!;
 		[SerializeField] private UShellLogStatsView _statsView = null!;
@@ -23,13 +26,14 @@ namespace UShell.Runtime.Unity.UI
 		public bool IsVisible => _canvas.enabled;
 		public string CurrentInput => _inputField.CurrentText;
 
-		public void Initialize(UShellUIConfiguration configuration)
+		public void Initialize()
 		{
-			if (configuration == null) throw new ArgumentNullException(nameof(configuration));
+			if (!ValidateDependencies())
+				return;
 
-			_scrollView.Initialize(configuration);
-			_inputField.Initialize(configuration);
-			_suggestionsContainer.Initialize(configuration);
+			_scrollView.Initialize(_configuration);
+			_inputField.Initialize(_configuration);
+			_suggestionsContainer.Initialize(_configuration);
 
 			_inputField.OnInputChanged += HandleInputChanged;
 			_scrollView.OnStatsChanged += HandleStatsChanged;
@@ -107,6 +111,47 @@ namespace UShell.Runtime.Unity.UI
 		private void HandleStatsChanged(int infoCount, int warningCount, int errorCount)
 		{
 			_statsView.UpdateStats(infoCount, warningCount, errorCount);
+		}
+
+		private bool ValidateDependencies()
+		{
+			if (_configuration == null)
+			{
+				Debug.LogError("UShellUIConfiguration is not assigned in ConsoleView.");
+				return false;
+			}
+
+			if (_scrollView == null)
+			{
+				Debug.LogError("UShellScrollView is not assigned in ConsoleView.");
+				return false;
+			}
+
+			if (_inputField == null)
+			{
+				Debug.LogError("UShellInputField is not assigned in ConsoleView.");
+				return false;
+			}
+
+			if (_suggestionsContainer == null)
+			{
+				Debug.LogError("UShellSuggestionsContainer is not assigned in ConsoleView.");
+				return false;
+			}
+
+			if (_statsView == null)
+			{
+				Debug.LogError("UShellLogStatsView is not assigned in ConsoleView.");
+				return false;
+			}
+
+			if (_canvas == null)
+			{
+				Debug.LogError("Canvas is not assigned in ConsoleView.");
+				return false;
+			}
+
+			return true;
 		}
 	}
 }

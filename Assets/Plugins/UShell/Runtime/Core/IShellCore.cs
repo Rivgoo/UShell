@@ -1,5 +1,6 @@
 ﻿using UShell.Runtime.Core.Abstractions;
 using UShell.Runtime.Core.Execution;
+using UShell.Runtime.Core.History;
 
 namespace UShell.Runtime.Core
 {
@@ -7,5 +8,6 @@ namespace UShell.Runtime.Core
 	{
 		ICommandExecutor Executor { get; }
 		ICommandRegistry Registry { get; }
+		ICommandHistory History { get; }
 	}
 }
