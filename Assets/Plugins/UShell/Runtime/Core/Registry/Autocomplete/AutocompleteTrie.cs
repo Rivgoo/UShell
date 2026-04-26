@@ -19,23 +19,24 @@ namespace UShell.Runtime.Core.Registry.Autocomplete
 			}
 
 			current.Command = command;
+			current.MatchedWord = word;
 		}
 
-		public IReadOnlyList<CommandSignature> GetSuggestions(ReadOnlySpan<char> prefix)
+		public IReadOnlyList<CommandSuggestion> GetSuggestions(ReadOnlySpan<char> prefix)
 		{
 			TrieNode? current = FindNodeByPrefix(prefix);
 
 			if (current == null)
 			{
-				return Array.Empty<CommandSignature>();
+				return Array.Empty<CommandSuggestion>();
 			}
 
 			var seenCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-			var results = new List<CommandSignature>();
+			var results = new List<CommandSuggestion>();
 
 			CollectCommandsRecursive(current, seenCommands, results);
 
-			results.Sort(static (a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+			results.Sort(static (a, b) => string.Compare(a.MatchText, b.MatchText, StringComparison.OrdinalIgnoreCase));
 
 			return results;
 		}
@@ -55,11 +56,11 @@ namespace UShell.Runtime.Core.Registry.Autocomplete
 			return current;
 		}
 
-		private static void CollectCommandsRecursive(TrieNode node, HashSet<string> seen, List<CommandSignature> results)
+		private static void CollectCommandsRecursive(TrieNode node, HashSet<string> seen, List<CommandSuggestion> results)
 		{
-			if (node.Command != null && seen.Add(node.Command.Name))
+			if (node.Command != null && node.MatchedWord != null && seen.Add(node.MatchedWord))
 			{
-				results.Add(node.Command);
+				results.Add(new CommandSuggestion(node.MatchedWord, node.Command));
 			}
 
 			foreach (TrieNode child in node.GetChildren())

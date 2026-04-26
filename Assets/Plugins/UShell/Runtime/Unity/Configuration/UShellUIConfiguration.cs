@@ -17,6 +17,10 @@ namespace UShell.Runtime.Unity.UI.Configuration
 		[Tooltip("The width of each character in 'em' units.")]
 		[SerializeField] private float _globalMonospaceWidth = 0.6f;
 
+		[Header("Suggestions (Info Blocks)")]
+		[SerializeField] private Color _suggestionBackgroundColor = new Color(0.15f, 0.15f, 0.15f, 0.9f);
+		[SerializeField] private float _suggestionPaddingX = 5f;
+
 		[Header("Colors & Themes")]
 		[SerializeField] private Color _ghostTextColor = new Color(0.4f, 0.4f, 0.4f, 0.5f);
 		[SerializeField] private Color _promptColor = new Color(1f, 0.55f, 0f, 1f);
@@ -42,6 +46,9 @@ namespace UShell.Runtime.Unity.UI.Configuration
 
 		public bool ForceGlobalMonospace => _forceGlobalMonospace;
 		public float GlobalMonospaceWidth => _globalMonospaceWidth;
+
+		public Color SuggestionBackgroundColor => _suggestionBackgroundColor;
+		public float SuggestionPaddingX => _suggestionPaddingX;
 
 		public Color GhostTextColor => _ghostTextColor;
 		public Color PromptColor => _promptColor;

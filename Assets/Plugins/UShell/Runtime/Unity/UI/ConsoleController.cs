@@ -113,10 +113,15 @@ namespace UShell.Runtime.Unity.UI
 
 			_printer.Print(new LogEntry(input, LogType.Standard));
 			AddToHistory(input);
+
 			_view.ClearInput();
+			_view.RenderAutocomplete(Array.Empty<CommandSuggestion>());
+			_view.RenderSignatures(Array.Empty<string>());
 
 			_core.Executor.Execute(input);
-			_view.RefocusInput();
+
+			if (_view.IsVisible)
+				_view.RefocusInput();
 		}
 
 		private void InputChanged(string input)
@@ -125,14 +130,36 @@ namespace UShell.Runtime.Unity.UI
 
 			if (string.IsNullOrWhiteSpace(input))
 			{
-				_view.RenderAutocomplete(Array.Empty<CommandSignature>());
+				_view.RenderAutocomplete(Array.Empty<CommandSuggestion>());
+				_view.RenderSignatures(Array.Empty<string>());
 				return;
 			}
 
 			ReadOnlySpan<char> firstWord = GetFirstWord(input);
-			var suggestions = _core.Registry.GetSuggestions(firstWord);
+			bool hasSpace = input.AsSpan().TrimStart().IndexOf(' ') >= 0;
 
+			var suggestions = _core.Registry.GetSuggestions(firstWord);
 			_view.RenderAutocomplete(suggestions);
+
+			var signatureStrings = new List<string>(5);
+
+			if (hasSpace)
+			{
+				if (_core.Registry.TryGetCommand(firstWord.ToString(), out CommandSignature exactCmd))
+				{
+					signatureStrings.Add(_core.Registry.GetCompactSignature(exactCmd));
+				}
+			}
+			else
+			{
+				int count = Math.Min(suggestions.Count, 5);
+				for (int i = 0; i < count; i++)
+				{
+					signatureStrings.Add(_core.Registry.GetCompactSignature(suggestions[i].Signature));
+				}
+			}
+
+			_view.RenderSignatures(signatureStrings);
 		}
 
 		private void HistoryUp()
@@ -187,8 +214,9 @@ namespace UShell.Runtime.Unity.UI
 
 		private static ReadOnlySpan<char> GetFirstWord(string input)
 		{
-			int idx = input.IndexOf(' ');
-			return idx > 0 ? input.AsSpan(0, idx) : input.AsSpan();
+			ReadOnlySpan<char> trimmed = input.AsSpan().TrimStart();
+			int idx = trimmed.IndexOf(' ');
+			return idx > 0 ? trimmed.Slice(0, idx) : trimmed;
 		}
 	}
 }

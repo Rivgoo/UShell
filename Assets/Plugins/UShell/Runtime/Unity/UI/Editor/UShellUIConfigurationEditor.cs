@@ -21,13 +21,18 @@ namespace UShell.Editor.UI
 			EditorGUILayout.Space(10);
 			DrawHeader("Global Monospace (ASCII Alignment)");
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("_forceGlobalMonospace"));
-			
+
 			if (serializedObject.FindProperty("_forceGlobalMonospace").boolValue)
 			{
 				EditorGUI.indentLevel++;
 				EditorGUILayout.PropertyField(serializedObject.FindProperty("_globalMonospaceWidth"));
 				EditorGUI.indentLevel--;
 			}
+
+			EditorGUILayout.Space(10);
+			DrawHeader("Suggestions (Info Blocks)");
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("_suggestionBackgroundColor"));
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("_suggestionPaddingX"));
 
 			EditorGUILayout.Space(10);
 			DrawHeader("Colors & Themes");

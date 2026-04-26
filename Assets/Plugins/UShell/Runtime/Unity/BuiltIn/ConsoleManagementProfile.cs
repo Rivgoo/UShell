@@ -158,7 +158,7 @@ namespace UShell.Runtime.Unity.BuiltIn
 
 				string aliases = sig.Aliases.Count > 0
 					? string.Join(", ", sig.Aliases)
-					: RichText.Color("-", ShellPalette.TextDim);
+					: RichText.Color("-", ShellPalette.TextMuted);
 
 				string wrappedDesc = ProfileFormatter.WrapText(sig.Description, 60);
 				string colorizedDesc = string.Join("\n", wrappedDesc.Split('\n').Select(l => RichText.Color(l, ShellPalette.TextSecondary)));

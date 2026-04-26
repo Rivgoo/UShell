@@ -87,8 +87,8 @@ namespace UShell.Runtime.Core.Output.Formatting
 				string nameStr = RichText.Color($"-{p.Name}", ShellPalette.SyntaxParam);
 
 				string formattedParam = p.IsOptional
-					? RichText.Color(" [", ShellPalette.TextDim) + nameStr + typePart + RichText.Color("]", ShellPalette.TextDim)
-					: RichText.Color(" <", ShellPalette.TextDim) + nameStr + typePart + RichText.Color(">", ShellPalette.TextDim);
+					? RichText.Color(" [", ShellPalette.TextTertiary) + nameStr + typePart + RichText.Color("]", ShellPalette.TextTertiary)
+					: RichText.Color(" <", ShellPalette.TextTertiary) + nameStr + typePart + RichText.Color(">", ShellPalette.TextTertiary);
 
 				int paramVisLen = RichTextStripper.Strip(formattedParam).Length;
 
@@ -101,6 +101,27 @@ namespace UShell.Runtime.Core.Output.Formatting
 
 				sb.Append(formattedParam);
 				currentLineLen += paramVisLen;
+			}
+
+			return sb.ToString();
+		}
+
+		public static string FormatCompactSignature(CommandSignature sig)
+		{
+			var sb = new StringBuilder();
+			sb.Append(RichText.Color(sig.Name, ShellPalette.SyntaxCommand));
+
+			foreach (CommandParameter p in sig.Parameters)
+			{
+				string typeStr = FriendlyTypeName(p.ParameterType);
+				string typePart = RichText.Color($":{typeStr}", ShellPalette.SyntaxType);
+				string nameStr = RichText.Color($"-{p.Name}", ShellPalette.SyntaxParam);
+
+				string formattedParam = p.IsOptional
+					? RichText.Color("[", ShellPalette.TextTertiary) + nameStr + typePart + RichText.Color("]", ShellPalette.TextTertiary)
+					: RichText.Color("<", ShellPalette.TextTertiary) + nameStr + typePart + RichText.Color(">", ShellPalette.TextTertiary);
+
+				sb.Append(" ").Append(formattedParam);
 			}
 
 			return sb.ToString();

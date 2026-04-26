@@ -9,6 +9,7 @@ namespace UShell.Runtime.Core.Registry.Autocomplete
 		private Dictionary<char, TrieNode>? _children;
 
 		public CommandSignature? Command { get; set; }
+		public string? MatchedWord { get; set; }
 
 		public TrieNode GetOrAddChild(char c)
 		{

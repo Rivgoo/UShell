@@ -14,9 +14,10 @@ namespace UShell.Runtime.Unity.UI
 
 		[SerializeField] private UShellScrollView _scrollView = null!;
 		[SerializeField] private UShellInputField _inputField = null!;
+		[SerializeField] private UShellSuggestionsContainer _suggestionsContainer = null!;
 		[SerializeField] private Canvas _canvas = null!;
 
-		private IReadOnlyList<CommandSignature> _currentSuggestions = Array.Empty<CommandSignature>();
+		private IReadOnlyList<CommandSuggestion> _currentSuggestions = Array.Empty<CommandSuggestion>();
 
 		public bool IsVisible => _canvas.enabled;
 		public string CurrentInput => _inputField.CurrentText;
@@ -27,6 +28,7 @@ namespace UShell.Runtime.Unity.UI
 
 			_scrollView.Initialize(configuration);
 			_inputField.Initialize(configuration);
+			_suggestionsContainer.Initialize(configuration);
 
 			_inputField.OnInputChanged += HandleInputChanged;
 
@@ -75,17 +77,22 @@ namespace UShell.Runtime.Unity.UI
 			_inputField.ClearInput();
 		}
 
-		public void RenderAutocomplete(IReadOnlyList<CommandSignature> suggestions)
+		public void RenderAutocomplete(IReadOnlyList<CommandSuggestion> suggestions)
 		{
 			_currentSuggestions = suggestions;
 
-			string bestSuggestion = suggestions.Count > 0 ? suggestions[0].Name : string.Empty;
+			string bestSuggestion = suggestions.Count > 0 ? suggestions[0].MatchText : string.Empty;
 			_inputField.RenderAutocomplete(bestSuggestion);
+		}
+
+		public void RenderSignatures(IReadOnlyList<string> signatures)
+		{
+			_suggestionsContainer.Render(signatures);
 		}
 
 		public string GetSelectedSuggestionName()
 		{
-			return _currentSuggestions.Count > 0 ? _currentSuggestions[0].Name : string.Empty;
+			return _currentSuggestions.Count > 0 ? _currentSuggestions[0].MatchText : string.Empty;
 		}
 
 		private void HandleInputChanged(string input)

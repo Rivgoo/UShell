@@ -83,6 +83,9 @@ namespace UShell.Runtime.Unity.UI.Components
 
 		public void Refocus()
 		{
+			if (!gameObject.activeInHierarchy)
+				return;
+
 			StartCoroutine(ForceFocusRoutine());
 		}
 

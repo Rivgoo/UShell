@@ -15,9 +15,9 @@ namespace UShell.Runtime.Core.Registry
 			return Target?.GetAllCommands() ?? Array.Empty<CommandSignature>();
 		}
 
-		public IReadOnlyList<CommandSignature> GetSuggestions(ReadOnlySpan<char> prefix)
+		public IReadOnlyList<CommandSuggestion> GetSuggestions(ReadOnlySpan<char> prefix)
 		{
-			return Target?.GetSuggestions(prefix) ?? Array.Empty<CommandSignature>();
+			return Target?.GetSuggestions(prefix) ?? Array.Empty<CommandSuggestion>();
 		}
 
 		public bool TryGetCommand(string name, out CommandSignature signature)
@@ -29,6 +29,11 @@ namespace UShell.Runtime.Core.Registry
 
 			signature = null!;
 			return false;
+		}
+
+		public string GetCompactSignature(CommandSignature signature)
+		{
+			return Target?.GetCompactSignature(signature) ?? string.Empty;
 		}
 	}
 }

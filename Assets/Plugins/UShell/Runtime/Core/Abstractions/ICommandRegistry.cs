@@ -7,7 +7,8 @@ namespace UShell.Runtime.Core.Abstractions
 	public interface ICommandRegistry
 	{
 		bool TryGetCommand(string name, out CommandSignature signature);
-		IReadOnlyList<CommandSignature> GetSuggestions(ReadOnlySpan<char> prefix);
+		IReadOnlyList<CommandSuggestion> GetSuggestions(ReadOnlySpan<char> prefix);
 		IReadOnlyCollection<CommandSignature> GetAllCommands();
+		string GetCompactSignature(CommandSignature signature);
 	}
 }
