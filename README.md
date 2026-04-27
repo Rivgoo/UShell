@@ -34,13 +34,31 @@ Understanding UShell's architecture helps you leverage its full potential:
 
 ## 📦 1. Installation & Quick Start
 
-**Requirements:** Unity 2021.3+ | TextMeshPro | Unity New Input System (default, can be swapped).
+**Requirements:** Unity 2021.3+ | TextMeshPro | Unity New Input System.
 
-### The Component-Based Setup
-1. Drag the `UShellManager` and `ComponentShellBootstrapper` components onto an empty GameObject (it will automatically be marked as `DontDestroyOnLoad`).
-2. Add the `ConsoleView` UI hierarchy to your Canvas (or use the provided prefab).
-3. In the Bootstrapper inspector, configure which built-in profiles you want (Math, Diagnostics, etc.) and your active `EnvironmentTag`.
-4. Hit Play, press `` ` `` (Backquote/Tilde) to toggle the console.
+### Option 1: Unity Package (Recommended)
+1.  Go to the [**Releases**](../../releases) page of this repository.
+2.  Download the latest `UShell-vX.X.X.unitypackage`.
+3.  Drag and drop the downloaded file into your Unity Project window.
+4.  Follow the import settings and ensure the `Assets/Plugins/UShell` directory is selected.
+
+### Option 2: Unity Package Manager (Git URL)
+If you prefer to keep the console isolated from your `Assets` folder:
+1.  Open the **Package Manager** in Unity (`Window` > `Package Manager`).
+2.  Click the **+** icon and select **Add package from git URL...**
+3.  Enter the following URL:
+    `https://github.com/Rivgoo/UShell.git?path=/Assets/Plugins/UShell`
+
+### Option 3: Manual
+1.  Clone this repository or download the source code.
+2.  Copy the `Assets/Plugins/UShell` folder into your project's `Assets` directory.
+
+---
+
+### ⚙️ Prerequisites Check
+Regardless of the installation method, ensure these steps are completed:
+*   **TextMeshPro:** Ensure you have TextMeshPro Essential Resources imported (`Window` > `TextMeshPro` > `Import TMP Essential Resources`).
+*   **Input System:** UShell uses the New Input System by default. Ensure it is enabled in your `Project Settings` > `Player` > `Active Input Handling`.
 
 ### Your First Custom Command
 To add commands to the bootstrapper, create a `MonoBehaviour` implementing `IShellConfigurator`:
