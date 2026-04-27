@@ -24,16 +24,17 @@ jobs:
       - name: Calculate Version
         id: version
         run: |
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0")
+          FULL_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+          
+          VERSION_PREFIX=$(echo $FULL_TAG | sed 's/^v//' | cut -d. -f1-2)
           
           if git describe --tags --abbrev=0 >/dev/null 2>&1; then
-            COMMITS_SINCE_TAG=$(git rev-list --count $LATEST_TAG..HEAD)
+            PATCH_COUNT=$(git rev-list --count $FULL_TAG..HEAD)
           else
-            COMMITS_SINCE_TAG=$(git rev-list --count HEAD)
+            PATCH_COUNT=$(git rev-list --count HEAD)
           fi
           
-          BASE_VERSION=$(echo $LATEST_TAG | sed 's/^v//')
-          VERSION="v${BASE_VERSION}.${COMMITS_SINCE_TAG}"
+          VERSION="v${VERSION_PREFIX}.${PATCH_COUNT}"
           
           echo "Calculated Version: $VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
