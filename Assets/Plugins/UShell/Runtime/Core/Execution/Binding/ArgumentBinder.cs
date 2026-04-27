@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using UShell.Runtime.Core.Commands;
 using UShell.Runtime.Core.Diagnostics;
+using UShell.Runtime.Core.Execution.Context;
 using UShell.Runtime.Core.Parsing.Syntax;
 using UShell.Runtime.Core.Parsing.Types;
 
@@ -11,10 +12,12 @@ namespace UShell.Runtime.Core.Execution.Binding
 	internal sealed class ArgumentBinder : IArgumentBinder
 	{
 		private readonly ITypeParserRegistry _parserRegistry;
+		private readonly ISessionState _session;
 
-		public ArgumentBinder(ITypeParserRegistry parserRegistry)
+		public ArgumentBinder(ITypeParserRegistry parserRegistry, ISessionState session)
 		{
 			_parserRegistry = parserRegistry ?? throw new ArgumentNullException(nameof(parserRegistry));
+			_session = session ?? throw new ArgumentNullException(nameof(session));
 		}
 
 		public ExecutionResult<object?[]> BindArguments(IReadOnlyList<CommandParameter> parameters, IReadOnlyList<SyntaxNode> arguments)
@@ -115,6 +118,29 @@ namespace UShell.Runtime.Core.Execution.Binding
 
 		private ExecutionResult<object?> ParseNode(SyntaxNode node, Type targetType, string paramName)
 		{
+			if (node is VariableNode varNode)
+			{
+				if (!_session.TryGetValue(varNode.Name, out object? val))
+				{
+					return ExecutionResult<object?>.Failure(
+						ShellError.Create(ShellErrorCode.Execute_MacroOrSessionVariableNotFound, node.StartIndex, varNode.Name));
+				}
+
+				if (val != null && !targetType.IsAssignableFrom(val.GetType()))
+				{
+					try
+					{
+						val = Convert.ChangeType(val, targetType, System.Globalization.CultureInfo.InvariantCulture);
+					}
+					catch
+					{
+						return ExecutionResult<object?>.Failure(
+							ShellError.Create(ShellErrorCode.Bind_TypeMismatch, node.StartIndex, $"${varNode.Name}", targetType.Name));
+					}
+				}
+				return ExecutionResult<object?>.Success(val);
+			}
+
 			if (targetType.IsArray)
 			{
 				return ParseArrayNode(node, targetType, paramName);

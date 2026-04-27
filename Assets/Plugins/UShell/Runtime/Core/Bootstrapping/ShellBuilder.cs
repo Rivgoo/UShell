@@ -22,8 +22,10 @@ namespace UShell.Runtime.Core.Bootstrapping
 		private readonly List<IShellProfile> _profiles = new();
 		private readonly TypeParserRegistry _parserRegistry = new();
 		private readonly CommandHistory _history;
+		private readonly SessionState _sessionState = new();
 
 		public ICommandHistory History => _history;
+		public ISessionState SessionState => _sessionState;
 
 		public ShellBuilder(
 			IConsolePrinter printer,
@@ -69,11 +71,11 @@ namespace UShell.Runtime.Core.Bootstrapping
 
 			IReadOnlyList<CommandSignature> validSignatures = commandBuilder.BuildAll(_activeEnvironment);
 			var commandRegistry = new CommandRegistry(validSignatures);
-			var argumentBinder = new ArgumentBinder(_parserRegistry);
+			var argumentBinder = new ArgumentBinder(_parserRegistry, _sessionState);
 
-			var executor = new CommandExecutor(commandRegistry, argumentBinder, _interactiveSession, _printer);
+			var executor = new CommandExecutor(commandRegistry, argumentBinder, _interactiveSession, _printer, _sessionState);
 
-			return new ShellCore(executor, commandRegistry, _history, _interactiveSession);
+			return new ShellCore(executor, commandRegistry, _history, _interactiveSession, _sessionState);
 		}
 	}
 }

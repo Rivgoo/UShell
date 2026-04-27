@@ -14,11 +14,11 @@ namespace UShell.Runtime.Core.Parsing
 	{
 		private const int MaxRecursionDepth = 20;
 
-		public static ExecutionResult<CommandNode> Parse(string input)
+		public static ExecutionResult<SyntaxNode> Parse(string input)
 		{
 			if (string.IsNullOrWhiteSpace(input))
 			{
-				return ExecutionResult<CommandNode>.Failure(
+				return ExecutionResult<SyntaxNode>.Failure(
 					ShellError.Create(ShellErrorCode.Syntax_EmptyInput, 0));
 			}
 
@@ -29,7 +29,7 @@ namespace UShell.Runtime.Core.Parsing
 			{
 				int count = Tokenize(input, buffer);
 				var state = new ParserState(input, buffer, count);
-				return state.ParseCommand();
+				return state.ParseStatement();
 			}
 			finally
 			{
@@ -66,7 +66,11 @@ namespace UShell.Runtime.Core.Parsing
 				_position = 0;
 			}
 
-			private Token Peek() => _tokens[_position < _tokenCount ? _position : _tokenCount - 1];
+			private Token Peek(int offset = 0)
+			{
+				int index = _position + offset;
+				return _tokens[index < _tokenCount ? index : _tokenCount - 1];
+			}
 
 			private Token Consume()
 			{
@@ -77,14 +81,62 @@ namespace UShell.Runtime.Core.Parsing
 
 			private string Slice(Token t) => _source.Substring(t.Position, t.Length);
 
-			public ExecutionResult<CommandNode> ParseCommand()
+			public ExecutionResult<SyntaxNode> ParseStatement()
+			{
+				if (Peek().Type == TokenType.Variable && Peek(1).Type == TokenType.Equals)
+				{
+					Token varToken = Consume();
+					Consume();
+
+					ExecutionResult<SyntaxNode> rightSideResult;
+
+					if (Peek().Type == TokenType.Identifier)
+					{
+						var cmdResult = ParseCommand();
+						if (!cmdResult.IsSuccess) return ExecutionResult<SyntaxNode>.Failure(cmdResult.Error!.Value);
+						rightSideResult = ExecutionResult<SyntaxNode>.Success(cmdResult.Value);
+					}
+					else
+					{
+						rightSideResult = ParseValue(1);
+					}
+
+					if (!rightSideResult.IsSuccess) return rightSideResult;
+
+					string varName = Slice(varToken).Substring(1);
+					int len = rightSideResult.Value.StartIndex + rightSideResult.Value.Length - varToken.Position;
+
+					return ExecutionResult<SyntaxNode>.Success(
+						new AssignmentNode(varToken.Position, len, varName, rightSideResult.Value));
+				}
+
+				if (Peek().Type == TokenType.Identifier)
+				{
+					var cmdResult = ParseCommand();
+					if (!cmdResult.IsSuccess) return ExecutionResult<SyntaxNode>.Failure(cmdResult.Error!.Value);
+					return ExecutionResult<SyntaxNode>.Success(cmdResult.Value);
+				}
+
+				var valResult = ParseValue(1);
+				if (!valResult.IsSuccess) return valResult;
+
+				if (Peek().Type != TokenType.EndOfFile)
+				{
+					return ExecutionResult<SyntaxNode>.Failure(
+						ShellError.Create(ShellErrorCode.Syntax_UnexpectedToken, Peek().Position, Peek().Type));
+				}
+
+				return valResult;
+			}
+
+			private ExecutionResult<CommandNode> ParseCommand()
 			{
 				Token cmd = Consume();
 
 				if (cmd.Type != TokenType.Identifier)
 				{
 					return ExecutionResult<CommandNode>.Failure(
-						ShellError.Create(ShellErrorCode.Syntax_ExpectedCommandName, cmd.Position, Slice(cmd)));
+						ShellError.Create(ShellErrorCode.Syntax_ExpectedCommandOrVariable, cmd.Position, Slice(cmd)));
 				}
 
 				var args = new List<SyntaxNode>();
@@ -151,6 +203,11 @@ namespace UShell.Runtime.Core.Parsing
 					case TokenType.String:
 						Consume();
 						return ParseEscapedString(t);
+
+					case TokenType.Variable:
+						Consume();
+						return ExecutionResult<SyntaxNode>.Success(
+							new VariableNode(t.Position, t.Length, Slice(t).Substring(1)));
 
 					case TokenType.Identifier:
 					case TokenType.Number:

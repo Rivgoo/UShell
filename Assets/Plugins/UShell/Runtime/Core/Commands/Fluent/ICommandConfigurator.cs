@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using UShell.Runtime.Core.Execution.Context;
+using UShell.Runtime.Core.Suggestions;
 
 namespace UShell.Runtime.Core.Commands.Fluent
 {
@@ -9,8 +11,14 @@ namespace UShell.Runtime.Core.Commands.Fluent
 		ICommandConfigurator WithDescription(string description);
 		ICommandConfigurator WithAlias(string alias);
 		ICommandConfigurator RestrictedTo(EnvironmentTag tags);
+
 		ICommandConfigurator AddParameter<T>(string name);
 		ICommandConfigurator AddOptionalParameter<T>(string name, T defaultValue);
+
+		ICommandConfigurator WithSuggestions(ISuggestionProvider provider);
+		ICommandConfigurator WithSuggestions(IEnumerable<string> suggestions);
+		ICommandConfigurator WithSuggestions(Func<SuggestionContext, IEnumerable<string>> provider);
+
 		ICommandConfigurator WithTimeout(TimeSpan timeout);
 
 		void Executes(Action action);

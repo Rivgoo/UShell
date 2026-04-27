@@ -12,17 +12,20 @@ namespace UShell.Runtime.Core
 		public ICommandRegistry Registry { get; }
 		public ICommandHistory History { get; }
 		public IInteractiveSession InteractiveSession { get; }
+		public ISessionState SessionState { get; }
 
 		public ShellCore(
 			ICommandExecutor executor,
 			ICommandRegistry registry,
 			ICommandHistory history,
-			IInteractiveSession interactiveSession)
+			IInteractiveSession interactiveSession,
+			ISessionState sessionState)
 		{
 			Executor = executor ?? throw new ArgumentNullException(nameof(executor));
 			Registry = registry ?? throw new ArgumentNullException(nameof(registry));
 			History = history ?? throw new ArgumentNullException(nameof(history));
 			InteractiveSession = interactiveSession ?? throw new ArgumentNullException(nameof(interactiveSession));
+			SessionState = sessionState ?? throw new ArgumentNullException(nameof(sessionState));
 		}
 	}
 }

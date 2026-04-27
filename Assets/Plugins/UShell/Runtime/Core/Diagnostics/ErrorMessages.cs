@@ -7,7 +7,7 @@
 			return code switch
 			{
 				ShellErrorCode.Syntax_EmptyInput => "Input is empty.",
-				ShellErrorCode.Syntax_ExpectedCommandName => "Expected command name, but got '{0}'.",
+				ShellErrorCode.Syntax_ExpectedCommandOrVariable => "Expected command name or macro/variable assignment, but got '{0}'.",
 				ShellErrorCode.Syntax_ExpectedArgumentName => "Expected argument name after '-'.",
 				ShellErrorCode.Syntax_UnrecognizedSymbol => "Unrecognized or unclosed symbol.",
 				ShellErrorCode.Syntax_UnexpectedToken => "Unexpected token '{0}'.",
@@ -31,6 +31,7 @@
 				ShellErrorCode.Execute_CommandNotFound => "Unknown command '{0}'. Type 'help' to list commands.",
 				ShellErrorCode.Execute_Exception => "Execution Error: {0}",
 				ShellErrorCode.Execute_ExpressionError => "Expression Error: {0}",
+				ShellErrorCode.Execute_MacroOrSessionVariableNotFound => "Macro or session variable '{0}' is not defined.",
 
 				_ => "Unknown error."
 			};

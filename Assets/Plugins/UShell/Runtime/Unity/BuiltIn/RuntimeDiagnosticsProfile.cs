@@ -44,7 +44,7 @@ namespace UShell.Runtime.Unity.BuiltIn
 			builder.WithName("objects")
 				.WithDescription("Counts all active GameObjects currently present in the loaded scenes.")
 				.RestrictedTo(EnvironmentTag.Editor)
-				.Executes(ShowObjectCount);
+				.ExecutesReturning<int>(ShowObjectCount);
 
 			builder.WithName("tag.find")
 				.WithDescription("Lists GameObjects in the current scene that have the specified tag.")
@@ -179,10 +179,11 @@ namespace UShell.Runtime.Unity.BuiltIn
 			Print(sb.ToString().TrimEnd());
 		}
 
-		private void ShowObjectCount()
+		private int ShowObjectCount()
 		{
 			int count = UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None).Length;
 			Print($"Active GameObjects in scene:  {RichText.Bold(RichText.Color(count.ToString(), ShellPalette.SyntaxNumber))}");
+			return count;
 		}
 
 		private void FindByTag(string tag, int limit)

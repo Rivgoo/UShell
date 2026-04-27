@@ -6,9 +6,11 @@ using System.Text;
 using UShell.Runtime.Core.Abstractions;
 using UShell.Runtime.Core.Commands;
 using UShell.Runtime.Core.Commands.Fluent;
+using UShell.Runtime.Core.Execution.Context;
 using UShell.Runtime.Core.History;
 using UShell.Runtime.Core.Output;
 using UShell.Runtime.Core.Output.Formatting;
+using UShell.Runtime.Core.Suggestions;
 
 namespace UShell.Runtime.Unity.BuiltIn
 {
@@ -19,15 +21,18 @@ namespace UShell.Runtime.Unity.BuiltIn
 
 		private readonly ICommandRegistry _registry;
 		private readonly ICommandHistory _history;
+		private readonly ISessionState _sessionState;
 
 		public ConsoleManagementProfile(
 			IConsolePrinter printer,
 			ICommandRegistry registry,
-			ICommandHistory history)
+			ICommandHistory history,
+			ISessionState sessionState)
 			: base(printer)
 		{
 			_registry = registry ?? throw new ArgumentNullException(nameof(registry));
 			_history = history ?? throw new ArgumentNullException(nameof(history));
+			_sessionState = sessionState ?? throw new ArgumentNullException(nameof(sessionState));
 		}
 
 		protected override void Configure(ICommandBuilder builder)
@@ -51,7 +56,7 @@ namespace UShell.Runtime.Unity.BuiltIn
 			builder.WithName("echo")
 				.WithDescription("Prints the given text to the console.")
 				.AddParameter<string>("message")
-				.Executes<string>(Print);
+				.ExecutesReturning<string, string>(Echo);
 
 			builder.WithName("history")
 				.WithDescription("Shows the command input history for this session (newest last).")
@@ -71,6 +76,32 @@ namespace UShell.Runtime.Unity.BuiltIn
 			builder.WithName("alias")
 				.WithDescription("Lists all registered command aliases and their canonical command names.")
 				.Executes(ShowAliases);
+
+			builder.WithName("macro.list")
+				.WithDescription("Lists all currently assigned macros and session variables.")
+				.WithAlias("macros")
+				.Executes(ShowMacros);
+
+			builder.WithName("macro.delete")
+				.WithDescription("Deletes a specific macro or session variable by its name (without the $ prefix).")
+				.WithAlias("macro.remove")
+				.AddParameter<string>("name")
+				.WithSuggestions(GetMacroSuggestions)
+				.Executes<string>(DeleteMacro);
+
+			builder.WithName("macro.clear")
+				.WithDescription("Clears all currently assigned macros and session variables.")
+				.Executes(() =>
+				{
+					_sessionState.Clear();
+					PrintSuccess("All macros and session variables cleared.");
+				});
+		}
+
+		private string Echo(string message)
+		{
+			Print(message);
+			return message;
 		}
 
 		private void ShowHelp(string commandFilter)
@@ -259,6 +290,65 @@ namespace UShell.Runtime.Unity.BuiltIn
 			};
 
 			PrintTable(headers, rows, TableStyle.Standard);
+		}
+
+		private void ShowMacros()
+		{
+			var vars = _sessionState.GetVariables();
+
+			if (vars.Count == 0)
+			{
+				PrintWarning("No macros or session variables are currently set.");
+				return;
+			}
+
+			var sb = new StringBuilder();
+			sb.AppendLine(ProfileFormatter.FormatSectionHeader("macros & session variables"));
+
+			foreach (var v in vars)
+			{
+				_sessionState.TryGetValue(v, out var val);
+
+				string valStr;
+				if (val == null)
+				{
+					valStr = "null";
+				}
+				else if (val is string s)
+				{
+					valStr = $"\"{s}\"";
+				}
+				else
+				{
+					valStr = val.ToString();
+				}
+
+				sb.AppendLine($"  {RichText.Color("$" + v, ShellPalette.SyntaxParam)} = {RichText.Color(valStr, ShellPalette.SyntaxValue)}");
+			}
+
+			Print(sb.ToString().TrimEnd());
+		}
+
+		private void DeleteMacro(string name)
+		{
+			if (name.StartsWith("$"))
+			{
+				name = name.Substring(1);
+			}
+
+			if (_sessionState.Remove(name))
+			{
+				PrintSuccess($"Macro/Variable '${name}' was successfully deleted.");
+			}
+			else
+			{
+				PrintWarning($"Macro/Variable '${name}' not found.");
+			}
+		}
+
+		private IEnumerable<string> GetMacroSuggestions(SuggestionContext context)
+		{
+			return _sessionState.GetVariables();
 		}
 	}
 }

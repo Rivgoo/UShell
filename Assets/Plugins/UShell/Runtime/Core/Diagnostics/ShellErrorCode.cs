@@ -5,7 +5,7 @@
 		None = 0,
 
 		Syntax_EmptyInput = 100,
-		Syntax_ExpectedCommandName = 101,
+		Syntax_ExpectedCommandOrVariable = 101,
 		Syntax_ExpectedArgumentName = 102,
 		Syntax_UnrecognizedSymbol = 103,
 		Syntax_UnexpectedToken = 104,
@@ -28,6 +28,7 @@
 
 		Execute_CommandNotFound = 300,
 		Execute_Exception = 301,
-		Execute_ExpressionError = 302
+		Execute_ExpressionError = 302,
+		Execute_MacroOrSessionVariableNotFound = 303
 	}
 }

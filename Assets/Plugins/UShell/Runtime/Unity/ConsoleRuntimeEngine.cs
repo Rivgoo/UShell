@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UShell.Runtime.Core;
 using UShell.Runtime.Core.Commands;
 using UShell.Runtime.Core.Output;
+using UShell.Runtime.Core.Output.Formatting;
 using UShell.Runtime.Unity.BuiltIn;
 using UShell.Runtime.Unity.Inputs;
 using UShell.Runtime.Unity.UI;
@@ -164,27 +165,24 @@ namespace UShell.Runtime.Unity
 				return;
 			}
 
-			ReadOnlySpan<char> firstWord = GetFirstWord(input);
-			bool hasSpace = input.AsSpan().TrimStart().IndexOf(' ') >= 0;
-
-			var suggestions = _core.Registry.GetSuggestions(firstWord);
+			var suggestions = _core.Registry.GetSuggestions(input);
 			_view.RenderAutocomplete(suggestions);
 
-			var signatureStrings = new List<string>(5);
+			int count = Math.Min(suggestions.Count, 5);
+			var signatureStrings = new List<string>(count);
 
-			if (hasSpace)
+			for (int i = 0; i < count; i++)
 			{
-				if (_core.Registry.TryGetCommand(firstWord.ToString(), out CommandSignature exactCmd))
+				var s = suggestions[i];
+
+				if (s.Signature != null)
 				{
-					signatureStrings.Add(_core.Registry.GetCompactSignature(exactCmd));
+					signatureStrings.Add(_core.Registry.GetCompactSignature(s.Signature));
 				}
-			}
-			else
-			{
-				int count = Math.Min(suggestions.Count, 5);
-				for (int i = 0; i < count; i++)
+				else
 				{
-					signatureStrings.Add(_core.Registry.GetCompactSignature(suggestions[i].Signature));
+					string formatted = $"{RichText.Color($"[{s.Description}]", ShellPalette.TextMuted)} {RichText.Color(s.DisplayText, ShellPalette.SyntaxValue)}";
+					signatureStrings.Add(formatted);
 				}
 			}
 
@@ -244,13 +242,6 @@ namespace UShell.Runtime.Unity
 			{
 				_view.RefocusInput();
 			}
-		}
-
-		private static ReadOnlySpan<char> GetFirstWord(string input)
-		{
-			ReadOnlySpan<char> trimmed = input.AsSpan().TrimStart();
-			int idx = trimmed.IndexOf(' ');
-			return idx > 0 ? trimmed.Slice(0, idx) : trimmed;
 		}
 	}
 }

@@ -7,9 +7,11 @@
 		Identifier,
 		Number,
 		String,
+		Variable,
+		Equals,
 		Minus,
 		LBracket,
 		RBracket,
-		Comma 
+		Comma
 	}
 }

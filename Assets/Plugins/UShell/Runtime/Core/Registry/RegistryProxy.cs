@@ -15,9 +15,9 @@ namespace UShell.Runtime.Core.Registry
 			return Target?.GetAllCommands() ?? Array.Empty<CommandSignature>();
 		}
 
-		public IReadOnlyList<CommandSuggestion> GetSuggestions(ReadOnlySpan<char> prefix)
+		public IReadOnlyList<CommandSuggestion> GetSuggestions(string input)
 		{
-			return Target?.GetSuggestions(prefix) ?? Array.Empty<CommandSuggestion>();
+			return Target?.GetSuggestions(input) ?? Array.Empty<CommandSuggestion>();
 		}
 
 		public bool TryGetCommand(string name, out CommandSignature signature)

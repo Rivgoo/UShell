@@ -11,5 +11,6 @@ namespace UShell.Runtime.Core
 		ICommandRegistry Registry { get; }
 		ICommandHistory History { get; }
 		IInteractiveSession InteractiveSession { get; }
+		ISessionState SessionState { get; }
 	}
 }

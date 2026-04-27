@@ -13,6 +13,7 @@ namespace UShell.Runtime.Unity.Bootstrapping
 		public RegistryProxy RegistryProxy { get; }
 		public ICommandHistory History { get; }
 		public IInteractiveSession InteractiveSession { get; }
+		public ISessionState SessionState { get; }
 		public EnvironmentTag ActiveEnvironment { get; }
 
 		public ShellBootstrapContext(
@@ -20,12 +21,14 @@ namespace UShell.Runtime.Unity.Bootstrapping
 			RegistryProxy registryProxy,
 			ICommandHistory history,
 			IInteractiveSession interactiveSession,
+			ISessionState sessionState,
 			EnvironmentTag activeEnvironment)
 		{
 			Printer = printer ?? throw new ArgumentNullException(nameof(printer));
 			RegistryProxy = registryProxy ?? throw new ArgumentNullException(nameof(registryProxy));
 			History = history ?? throw new ArgumentNullException(nameof(history));
 			InteractiveSession = interactiveSession ?? throw new ArgumentNullException(nameof(interactiveSession));
+			SessionState = sessionState ?? throw new ArgumentNullException(nameof(sessionState));
 			ActiveEnvironment = activeEnvironment;
 		}
 	}

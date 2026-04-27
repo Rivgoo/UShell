@@ -6,6 +6,7 @@ using UShell.Runtime.Core.Exceptions;
 using UShell.Runtime.Core.Execution.Context;
 using UShell.Runtime.Core.Execution.Invocation;
 using UShell.Runtime.Core.Registry;
+using UShell.Runtime.Core.Suggestions;
 
 namespace UShell.Runtime.Core.Commands.Fluent
 {
@@ -59,6 +60,28 @@ namespace UShell.Runtime.Core.Commands.Fluent
 			CommandValidator.ValidateParameterName(_name, name);
 			_parameters.Add(new CommandParameter(name, typeof(T), true, defaultValue));
 			return this;
+		}
+
+		public ICommandConfigurator WithSuggestions(ISuggestionProvider provider)
+		{
+			if (_parameters.Count == 0)
+			{
+				throw new ShellConfigurationException($"Cannot add suggestions to command '{_name}' because no parameters have been added yet.");
+			}
+
+			var last = _parameters[_parameters.Count - 1];
+			_parameters[_parameters.Count - 1] = new CommandParameter(last.Name, last.ParameterType, last.IsOptional, last.DefaultValue, provider);
+			return this;
+		}
+
+		public ICommandConfigurator WithSuggestions(IEnumerable<string> suggestions)
+		{
+			return WithSuggestions(new StaticSuggestionProvider(suggestions));
+		}
+
+		public ICommandConfigurator WithSuggestions(Func<SuggestionContext, IEnumerable<string>> provider)
+		{
+			return WithSuggestions(new DelegateSuggestionProvider(provider));
 		}
 
 		public ICommandConfigurator WithTimeout(TimeSpan timeout)
@@ -117,12 +140,32 @@ namespace UShell.Runtime.Core.Commands.Fluent
 				throw new ShellConfigurationException($"Command '{_name}' has no execution delegate assigned. Did you forget to call .Executes()?");
 			}
 
+			var processedParams = new List<CommandParameter>(_parameters.Count);
+			foreach (var p in _parameters)
+			{
+				ISuggestionProvider? provider = p.SuggestionProvider;
+
+				if (provider == null)
+				{
+					if (p.ParameterType.IsEnum)
+					{
+						provider = new StaticSuggestionProvider(Enum.GetNames(p.ParameterType));
+					}
+					else if (p.ParameterType == typeof(bool))
+					{
+						provider = new StaticSuggestionProvider(new[] { "true", "false", "1", "0" });
+					}
+				}
+
+				processedParams.Add(new CommandParameter(p.Name, p.ParameterType, p.IsOptional, p.DefaultValue, provider));
+			}
+
 			return new CommandSignature(
 				_name,
 				_description,
 				new List<string>(_aliases).AsReadOnly(),
 				_tags,
-				new List<CommandParameter>(_parameters).AsReadOnly(),
+				processedParams.AsReadOnly(),
 				_invoker,
 				_timeout,
 				_isInteractive);

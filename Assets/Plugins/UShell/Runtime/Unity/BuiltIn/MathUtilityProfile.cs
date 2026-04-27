@@ -19,48 +19,51 @@ namespace UShell.Runtime.Unity.BuiltIn
 				.WithDescription("Evaluates a mathematical expression and prints the result.")
 				.WithAlias("calc")
 				.AddParameter<string>("expression")
-				.Executes<string>(Eval);
+				.ExecutesReturning<string, double>(Eval);
 
 			builder.WithName("random")
 				.WithDescription("Generates a random integer in the inclusive range [min, max].")
 				.WithAlias("rand")
 				.AddOptionalParameter<int>("min", 0)
 				.AddOptionalParameter<int>("max", 100)
-				.Executes<int, int>(Random);
+				.ExecutesReturning<int, int, int>(Random);
 
 			builder.WithName("convert")
 				.WithDescription("Converts a value between common units or numeric bases.")
 				.AddParameter<float>("value")
 				.AddParameter<string>("from")
 				.AddParameter<string>("to")
-				.Executes<float, string, string>(Convert);
+				.ExecutesReturning<float, string, string, float>(Convert);
 		}
 
-		private void Eval(string expression)
+		private double Eval(string expression)
 		{
 			var result = SimpleExpressionEvaluator.EvaluateWithFormat(expression, out SimpleExpressionEvaluator.FormatResultKind format);
 
 			if (!result.IsSuccess)
 			{
-				PrintError(result.Error!.Value.Message);
-				return;
+				throw new Exception(result.Error!.Value.Message);
 			}
 
 			string formatted = SimpleExpressionEvaluator.FormatResult(result.Value, format);
 			string display = RichText.Bold(RichText.Color(formatted, ShellPalette.SyntaxNumber));
 			PrintSuccess($"= {display}");
+
+			return result.Value;
 		}
 
-		private void Random(int min, int max)
+		private int Random(int min, int max)
 		{
 			if (min > max) (min, max) = (max, min);
 
 			int val = new System.Random().Next(min, max + 1);
 			string r = RichText.Bold(RichText.Color(val.ToString(), ShellPalette.SyntaxNumber));
 			PrintSuccess($"Random [{min}, {max}]  →  {r}");
+
+			return val;
 		}
 
-		private void Convert(float value, string from, string to)
+		private float Convert(float value, string from, string to)
 		{
 			string fromL = from.ToLowerInvariant();
 			string toL = to.ToLowerInvariant();
@@ -70,13 +73,11 @@ namespace UShell.Runtime.Unity.BuiltIn
 				string rv = RichText.Bold(RichText.Color(SimpleExpressionEvaluator.FormatResult(result), ShellPalette.SyntaxNumber));
 				string uv = RichText.Color(unit, ShellPalette.StatUnit);
 				PrintSuccess($"{value} {from}  →  {rv} {uv}");
+
+				return (float)result;
 			}
-			else
-			{
-				PrintError($"Cannot convert from '{from}' to '{to}'. Supported conversions: " +
-						   "deg↔rad, km↔m↔cm↔mm↔mi↔ft↔in, kg↔g↔lb, " +
-						   "bytes↔kb↔mb↔gb, dec↔hex↔bin.");
-			}
+
+			throw new Exception($"Cannot convert from '{from}' to '{to}'. Supported conversions: deg↔rad, km↔m↔cm↔mm↔mi↔ft↔in, kg↔g↔lb, bytes↔kb↔mb↔gb, dec↔hex↔bin.");
 		}
 
 		private static bool TryConvertUnit(float value, string from, string to, out double result, out string unit)

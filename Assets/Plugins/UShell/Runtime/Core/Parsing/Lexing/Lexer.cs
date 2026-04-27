@@ -30,6 +30,9 @@ namespace UShell.Runtime.Core.Parsing.Lexing
 				return ConsumeSingleCharToken(TokenType.Minus);
 			}
 
+			if (current == '$') return LexVariable();
+			if (current == '=') return ConsumeSingleCharToken(TokenType.Equals);
+
 			return current switch
 			{
 				'[' => ConsumeSingleCharToken(TokenType.LBracket),
@@ -58,6 +61,16 @@ namespace UShell.Runtime.Core.Parsing.Lexing
 		{
 			int start = _position++;
 			return new Token(type, start, 1);
+		}
+
+		private Token LexVariable()
+		{
+			int start = _position++;
+			while (_position < _input.Length && (char.IsLetterOrDigit(_input[_position]) || _input[_position] == '_'))
+			{
+				_position++;
+			}
+			return new Token(TokenType.Variable, start, _position - start);
 		}
 
 		private Token LexString()
@@ -118,6 +131,6 @@ namespace UShell.Runtime.Core.Parsing.Lexing
 			return new Token(type, start, _position - start);
 		}
 
-		private static bool IsDelimiter(char c) => c == '[' || c == ']' || c == ',' || c == '"';
+		private static bool IsDelimiter(char c) => c == '[' || c == ']' || c == ',' || c == '"' || c == '$' || c == '=';
 	}
 }

@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using System;
+using UShell.Runtime.Core.Suggestions;
 
 namespace UShell.Runtime.Core.Commands
 {
@@ -9,8 +10,9 @@ namespace UShell.Runtime.Core.Commands
 		public Type ParameterType { get; }
 		public bool IsOptional { get; }
 		public object? DefaultValue { get; }
+		public ISuggestionProvider? SuggestionProvider { get; }
 
-		public CommandParameter(string name, Type parameterType, bool isOptional, object? defaultValue)
+		public CommandParameter(string name, Type parameterType, bool isOptional, object? defaultValue, ISuggestionProvider? suggestionProvider = null)
 		{
 			if (string.IsNullOrWhiteSpace(name))
 			{
@@ -21,6 +23,7 @@ namespace UShell.Runtime.Core.Commands
 			ParameterType = parameterType ?? throw new ArgumentNullException(nameof(parameterType));
 			IsOptional = isOptional;
 			DefaultValue = defaultValue;
+			SuggestionProvider = suggestionProvider;
 		}
 	}
 }

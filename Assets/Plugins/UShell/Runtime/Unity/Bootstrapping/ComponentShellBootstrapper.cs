@@ -39,7 +39,7 @@ namespace UShell.Runtime.Unity.Bootstrapping
 		private void RegisterBuiltInDependencies(CoreShellBootstrapper bootstrapper)
 		{
 			if (_includeConsoleManagementProfile)
-				bootstrapper.AddProfile(context => new ConsoleManagementProfile(context.Printer, context.RegistryProxy, context.History));
+				bootstrapper.AddProfile(context => new ConsoleManagementProfile(context.Printer, context.RegistryProxy, context.History, context.SessionState));
 			if (_includeEnvironmentInfoProfile)
 				bootstrapper.AddProfile(context => new EnvironmentInfoProfile(context.Printer, Application.version, context.ActiveEnvironment));
 			if (_includeMathUtilityProfile)

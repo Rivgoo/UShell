@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UShell.Runtime.Core.Commands;
 
 namespace UShell.Runtime.Core.Abstractions
@@ -7,7 +6,7 @@ namespace UShell.Runtime.Core.Abstractions
 	public interface ICommandRegistry
 	{
 		bool TryGetCommand(string name, out CommandSignature signature);
-		IReadOnlyList<CommandSuggestion> GetSuggestions(ReadOnlySpan<char> prefix);
+		IReadOnlyList<CommandSuggestion> GetSuggestions(string input);
 		IReadOnlyCollection<CommandSignature> GetAllCommands();
 		string GetCompactSignature(CommandSignature signature);
 	}
