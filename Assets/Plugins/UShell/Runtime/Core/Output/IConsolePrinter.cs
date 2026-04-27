@@ -6,9 +6,11 @@ namespace UShell.Runtime.Core.Output
 {
 	public interface IConsolePrinter
 	{
-		public event Action<LogEntry> OnLogAdded;
+		event Action<LogEntry> OnLogAdded;
+		event Action<Guid, LogEntry> OnLogUpdated;
 
 		void Print(LogEntry entry);
+		void UpdatePrint(Guid id, LogEntry entry);
 		void PrintTable(IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<string>> rows, TableStyle style = TableStyle.Standard);
 	}
 }

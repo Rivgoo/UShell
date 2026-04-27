@@ -11,6 +11,7 @@ namespace UShell.Runtime.Unity.Output
 	public sealed class UnityConsolePrinter : IConsolePrinter
 	{
 		public event Action<LogEntry> OnLogAdded = delegate { };
+		public event Action<Guid, LogEntry> OnLogUpdated = delegate { };
 
 		public bool MirrorToUnityConsole { get; set; }
 
@@ -27,6 +28,11 @@ namespace UShell.Runtime.Unity.Output
 			{
 				MirrorToEngine(entry);
 			}
+		}
+
+		public void UpdatePrint(Guid id, LogEntry entry)
+		{
+			OnLogUpdated.Invoke(id, entry);
 		}
 
 		public void PrintTable(IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<string>> rows, TableStyle style = TableStyle.Standard)

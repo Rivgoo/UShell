@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using UShell.Runtime.Core.Execution.Context;
 
 namespace UShell.Runtime.Core.Commands.Fluent
 {
@@ -10,6 +11,7 @@ namespace UShell.Runtime.Core.Commands.Fluent
 		ICommandConfigurator RestrictedTo(EnvironmentTag tags);
 		ICommandConfigurator AddParameter<T>(string name);
 		ICommandConfigurator AddOptionalParameter<T>(string name, T defaultValue);
+		ICommandConfigurator WithTimeout(TimeSpan timeout);
 
 		void Executes(Action action);
 		void Executes<T1>(Action<T1> action);
@@ -31,5 +33,12 @@ namespace UShell.Runtime.Core.Commands.Fluent
 		void ExecutesAsync<T1, T2, T3>(Func<T1, T2, T3, Task> action);
 		void ExecutesAsync<T1, T2, T3, T4>(Func<T1, T2, T3, T4, Task> action);
 		void ExecutesAsync<T1, T2, T3, T4, T5>(Func<T1, T2, T3, T4, T5, Task> action);
+
+		void ExecutesInteractiveAsync(Func<ICommandContext, Task> action);
+		void ExecutesInteractiveAsync<T1>(Func<ICommandContext, T1, Task> action);
+		void ExecutesInteractiveAsync<T1, T2>(Func<ICommandContext, T1, T2, Task> action);
+		void ExecutesInteractiveAsync<T1, T2, T3>(Func<ICommandContext, T1, T2, T3, Task> action);
+		void ExecutesInteractiveAsync<T1, T2, T3, T4>(Func<ICommandContext, T1, T2, T3, T4, Task> action);
+		void ExecutesInteractiveAsync<T1, T2, T3, T4, T5>(Func<ICommandContext, T1, T2, T3, T4, T5, Task> action);
 	}
 }

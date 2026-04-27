@@ -21,6 +21,8 @@ namespace UShell.Runtime.Unity.UI.Components
 		private ScrollRect _scrollRect = null!;
 
 		private readonly Queue<UShellLogItem> _activeLogs = new();
+		private readonly Dictionary<Guid, UShellLogItem> _logMap = new();
+
 		private bool _isScrolledToBottom = true;
 
 		private int _infoCount;
@@ -51,11 +53,23 @@ namespace UShell.Runtime.Unity.UI.Components
 			else
 			{
 				item = _activeLogs.Dequeue();
+
+				if (item.CurrentId.HasValue)
+				{
+					_logMap.Remove(item.CurrentId.Value);
+				}
+
 				AdjustStatCounter(item.CurrentLogType, -1);
 				item.transform.SetAsLastSibling();
 			}
 
 			item.ApplyData(log, _configuration);
+
+			if (log.Id.HasValue)
+			{
+				_logMap[log.Id.Value] = item;
+			}
+
 			_activeLogs.Enqueue(item);
 
 			AdjustStatCounter(log.Type, 1);
@@ -64,6 +78,26 @@ namespace UShell.Runtime.Unity.UI.Components
 			if (_isScrolledToBottom)
 			{
 				ForceScrollToBottom();
+			}
+		}
+
+		public void UpdateLog(Guid id, LogEntry log)
+		{
+			if (_logMap.TryGetValue(id, out UShellLogItem item))
+			{
+				if (item.CurrentLogType != log.Type)
+				{
+					AdjustStatCounter(item.CurrentLogType, -1);
+					AdjustStatCounter(log.Type, 1);
+					NotifyStatsChanged();
+				}
+
+				item.ApplyData(log, _configuration);
+
+				if (_isScrolledToBottom)
+				{
+					ForceScrollToBottom();
+				}
 			}
 		}
 
@@ -78,6 +112,7 @@ namespace UShell.Runtime.Unity.UI.Components
 			}
 
 			_activeLogs.Clear();
+			_logMap.Clear();
 			_isScrolledToBottom = true;
 			ResetStatCounters();
 		}

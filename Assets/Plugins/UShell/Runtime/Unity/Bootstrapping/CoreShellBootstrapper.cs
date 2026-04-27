@@ -5,6 +5,7 @@ using UShell.Runtime.Core;
 using UShell.Runtime.Core.Abstractions;
 using UShell.Runtime.Core.Bootstrapping;
 using UShell.Runtime.Core.Commands;
+using UShell.Runtime.Core.Execution.Context;
 using UShell.Runtime.Core.Output.Reporting;
 using UShell.Runtime.Core.Parsing.Types;
 using UShell.Runtime.Core.Registry;
@@ -30,36 +31,33 @@ namespace UShell.Runtime.Unity.Bootstrapping
 		public CoreShellBootstrapper AddProfile(IShellProfile profile)
 		{
 			if (profile == null) throw new ArgumentNullException(nameof(profile));
-
 			return AddConfigurator(new DelegateConfigurator((builder, _) => builder.AddProfile(profile)));
 		}
 
 		public CoreShellBootstrapper AddProfile(Func<ShellBootstrapContext, IShellProfile> profileFactory)
 		{
 			if (profileFactory == null) throw new ArgumentNullException(nameof(profileFactory));
-
 			return AddConfigurator(new DelegateConfigurator((builder, context) => builder.AddProfile(profileFactory(context))));
 		}
 
 		public CoreShellBootstrapper AddTypeParser<T>(ITypeParser<T> parser)
 		{
 			if (parser == null) throw new ArgumentNullException(nameof(parser));
-
 			return AddConfigurator(new DelegateConfigurator((builder, _) => builder.AddTypeParser(parser)));
 		}
 
 		public CoreShellBootstrapper AddConfigurator(IShellConfigurator configurator)
 		{
 			if (configurator == null) throw new ArgumentNullException(nameof(configurator));
-
 			_configurators.Add(configurator);
 			return this;
 		}
 
 		public BootstrapResult Build()
 		{
-			var builder = new ShellBuilder(_environment);
-			var context = new ShellBootstrapContext(_printer, _registryProxy, builder.History, _environment);
+			var interactiveSession = new InteractiveSession(_printer);
+			var builder = new ShellBuilder(_printer, _environment, interactiveSession);
+			var context = new ShellBootstrapContext(_printer, _registryProxy, builder.History, interactiveSession, _environment);
 
 			RegisterBuiltInDependencies(builder, context);
 
@@ -71,7 +69,7 @@ namespace UShell.Runtime.Unity.Bootstrapping
 			IShellCore core = builder.Build();
 
 			var reportingExecutor = new ReportingCommandExecutor(core.Executor, _printer);
-			IShellCore decoratedCore = new ShellCore(reportingExecutor, core.Registry, core.History);
+			IShellCore decoratedCore = new ShellCore(reportingExecutor, core.Registry, core.History, core.InteractiveSession);
 
 			return new BootstrapResult(decoratedCore, _printer, _registryProxy);
 		}
@@ -89,12 +87,10 @@ namespace UShell.Runtime.Unity.Bootstrapping
 		private sealed class DelegateConfigurator : IShellConfigurator
 		{
 			private readonly Action<ShellBuilder, ShellBootstrapContext> _configureAction;
-
 			public DelegateConfigurator(Action<ShellBuilder, ShellBootstrapContext> configureAction)
 			{
 				_configureAction = configureAction;
 			}
-
 			public void Configure(ShellBuilder builder, ShellBootstrapContext context)
 			{
 				_configureAction(builder, context);

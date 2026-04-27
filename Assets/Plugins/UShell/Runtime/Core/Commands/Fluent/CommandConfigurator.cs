@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UShell.Runtime.Core.Exceptions;
+using UShell.Runtime.Core.Execution.Context;
 using UShell.Runtime.Core.Execution.Invocation;
 using UShell.Runtime.Core.Registry;
 
@@ -17,6 +18,9 @@ namespace UShell.Runtime.Core.Commands.Fluent
 		private string _description = string.Empty;
 		private EnvironmentTag _tags = EnvironmentTag.Any;
 		private ICommandInvoker? _invoker;
+
+		private TimeSpan? _timeout;
+		private bool _isInteractive;
 
 		public CommandConfigurator(string name)
 		{
@@ -57,6 +61,12 @@ namespace UShell.Runtime.Core.Commands.Fluent
 			return this;
 		}
 
+		public ICommandConfigurator WithTimeout(TimeSpan timeout)
+		{
+			_timeout = timeout;
+			return this;
+		}
+
 		public void Executes(Action action) { ValidateTypes(); AssignInvoker(new ActionInvoker(action)); }
 		public void Executes<T1>(Action<T1> action) { ValidateTypes(typeof(T1)); AssignInvoker(new ActionInvoker<T1>(action)); }
 		public void Executes<T1, T2>(Action<T1, T2> action) { ValidateTypes(typeof(T1), typeof(T2)); AssignInvoker(new ActionInvoker<T1, T2>(action)); }
@@ -78,9 +88,26 @@ namespace UShell.Runtime.Core.Commands.Fluent
 		public void ExecutesAsync<T1, T2, T3, T4>(Func<T1, T2, T3, T4, Task> action) { ValidateTypes(typeof(T1), typeof(T2), typeof(T3), typeof(T4)); AssignInvoker(new FuncInvoker<T1, T2, T3, T4, Task>(action)); }
 		public void ExecutesAsync<T1, T2, T3, T4, T5>(Func<T1, T2, T3, T4, T5, Task> action) { ValidateTypes(typeof(T1), typeof(T2), typeof(T3), typeof(T4), typeof(T5)); AssignInvoker(new FuncInvoker<T1, T2, T3, T4, T5, Task>(action)); }
 
+		public void ExecutesInteractiveAsync(Func<ICommandContext, Task> action) { SetInteractive(); ValidateTypes(); AssignInvoker(new InteractiveFuncInvoker(action)); }
+		public void ExecutesInteractiveAsync<T1>(Func<ICommandContext, T1, Task> action) { SetInteractive(); ValidateTypes(typeof(T1)); AssignInvoker(new InteractiveFuncInvoker<T1>(action)); }
+		public void ExecutesInteractiveAsync<T1, T2>(Func<ICommandContext, T1, T2, Task> action) { SetInteractive(); ValidateTypes(typeof(T1), typeof(T2)); AssignInvoker(new InteractiveFuncInvoker<T1, T2>(action)); }
+		public void ExecutesInteractiveAsync<T1, T2, T3>(Func<ICommandContext, T1, T2, T3, Task> action) { SetInteractive(); ValidateTypes(typeof(T1), typeof(T2), typeof(T3)); AssignInvoker(new InteractiveFuncInvoker<T1, T2, T3>(action)); }
+		public void ExecutesInteractiveAsync<T1, T2, T3, T4>(Func<ICommandContext, T1, T2, T3, T4, Task> action) { SetInteractive(); ValidateTypes(typeof(T1), typeof(T2), typeof(T3), typeof(T4)); AssignInvoker(new InteractiveFuncInvoker<T1, T2, T3, T4>(action)); }
+		public void ExecutesInteractiveAsync<T1, T2, T3, T4, T5>(Func<ICommandContext, T1, T2, T3, T4, T5, Task> action) { SetInteractive(); ValidateTypes(typeof(T1), typeof(T2), typeof(T3), typeof(T4), typeof(T5)); AssignInvoker(new InteractiveFuncInvoker<T1, T2, T3, T4, T5>(action)); }
+
 		private void AssignInvoker(ICommandInvoker invoker)
 		{
 			_invoker = invoker ?? throw new ArgumentNullException(nameof(invoker));
+		}
+
+		private void SetInteractive()
+		{
+			if (!_timeout.HasValue)
+			{
+				throw new ShellConfigurationException(
+					$"Interactive command '{_name}' requires a mandatory timeout limit. Use .WithTimeout() before calling .ExecutesInteractiveAsync().");
+			}
+			_isInteractive = true;
 		}
 
 		internal CommandSignature Build()
@@ -96,7 +123,9 @@ namespace UShell.Runtime.Core.Commands.Fluent
 				new List<string>(_aliases).AsReadOnly(),
 				_tags,
 				new List<CommandParameter>(_parameters).AsReadOnly(),
-				_invoker);
+				_invoker,
+				_timeout,
+				_isInteractive);
 		}
 
 		private void ValidateTypes(params Type[] expectedTypes)

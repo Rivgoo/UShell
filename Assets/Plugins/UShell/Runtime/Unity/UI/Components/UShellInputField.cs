@@ -38,12 +38,33 @@ namespace UShell.Runtime.Unity.UI.Components
 
 			_ghostText.font = configuration.MainFont;
 			_ghostText.fontSize = configuration.InputFontSize;
-			_promptImage.color = configuration.PromptColor;
+
+			SetMode(ConsoleInputMode.Standard);
 		}
 
 		private void Update()
 		{
 			ProcessPromptBlinking();
+		}
+
+		public void SetMode(ConsoleInputMode mode)
+		{
+			if (mode == ConsoleInputMode.Locked)
+			{
+				_realInput.interactable = false;
+				_ghostText.text = string.Empty;
+				_promptImage.color = Color.gray;
+			}
+			else if (mode == ConsoleInputMode.Prompt)
+			{
+				_realInput.interactable = true;
+				_promptImage.color = Color.yellow;
+			}
+			else
+			{
+				_realInput.interactable = true;
+				_promptImage.color = _configuration.PromptColor;
+			}
 		}
 
 		public void RenderAutocomplete(string suggestion)
@@ -83,7 +104,7 @@ namespace UShell.Runtime.Unity.UI.Components
 
 		public void Refocus()
 		{
-			if (!gameObject.activeInHierarchy)
+			if (!gameObject.activeInHierarchy || !_realInput.interactable)
 				return;
 
 			StartCoroutine(ForceFocusRoutine());
@@ -96,7 +117,17 @@ namespace UShell.Runtime.Unity.UI.Components
 				return '\0';
 			}
 
-			if (addedChar == '\n' || addedChar == '\r' || addedChar == '\t')
+			if (addedChar == '\t')
+			{
+				if (!string.IsNullOrEmpty(_currentSuggestion))
+				{
+					return '\0';
+				}
+
+				return ' ';
+			}
+
+			if (addedChar == '\n' || addedChar == '\r')
 			{
 				return ' ';
 			}
@@ -126,11 +157,7 @@ namespace UShell.Runtime.Unity.UI.Components
 
 		private static string SanitizeInput(string text)
 		{
-			if (string.IsNullOrEmpty(text))
-			{
-				return text;
-			}
-
+			if (string.IsNullOrEmpty(text)) return text;
 			return text.Replace("\r\n", " ").Replace('\n', ' ').Replace('\r', ' ').Replace('\t', ' ');
 		}
 
@@ -160,7 +187,7 @@ namespace UShell.Runtime.Unity.UI.Components
 
 		private void ProcessPromptBlinking()
 		{
-			if (_realInput.text.Length > 0)
+			if (_realInput.text.Length > 0 || !_realInput.interactable)
 			{
 				SetPromptAlpha(1f);
 				return;

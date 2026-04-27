@@ -13,6 +13,8 @@ namespace UShell.Runtime.Core.Commands
 		public EnvironmentTag Tags { get; }
 		public IReadOnlyList<CommandParameter> Parameters { get; }
 		public ICommandInvoker Invoker { get; }
+		public TimeSpan? Timeout { get; }
+		public bool IsInteractive { get; }
 
 		public CommandSignature(
 			string name,
@@ -20,7 +22,9 @@ namespace UShell.Runtime.Core.Commands
 			IReadOnlyList<string> aliases,
 			EnvironmentTag tags,
 			IReadOnlyList<CommandParameter> parameters,
-			ICommandInvoker invoker)
+			ICommandInvoker invoker,
+			TimeSpan? timeout = null,
+			bool isInteractive = false)
 		{
 			if (string.IsNullOrWhiteSpace(name))
 			{
@@ -33,6 +37,8 @@ namespace UShell.Runtime.Core.Commands
 			Tags = tags;
 			Parameters = parameters ?? Array.Empty<CommandParameter>();
 			Invoker = invoker ?? throw new ArgumentNullException(nameof(invoker));
+			Timeout = timeout;
+			IsInteractive = isInteractive;
 		}
 	}
 }

@@ -46,7 +46,11 @@ namespace UShell.Runtime.Unity
 			_input.OnEscape += Escape;
 
 			_view.OnInputChanged += InputChanged;
-			_printer.OnLogAdded += LogAdded;
+
+			_printer.OnLogAdded += _view.AddLogEntry;
+			_printer.OnLogUpdated += _view.UpdateLogEntry;
+
+			_core.InteractiveSession.OnStateChanged += UpdateInputState;
 
 			ConsoleManagementProfile.OnClearRequested += _view.ClearLogs;
 			ConsoleManagementProfile.OnCloseRequested += CloseConsole;
@@ -62,7 +66,11 @@ namespace UShell.Runtime.Unity
 			_input.OnEscape -= Escape;
 
 			_view.OnInputChanged -= InputChanged;
-			_printer.OnLogAdded -= LogAdded;
+
+			_printer.OnLogAdded -= _view.AddLogEntry;
+			_printer.OnLogUpdated -= _view.UpdateLogEntry;
+
+			_core.InteractiveSession.OnStateChanged -= UpdateInputState;
 
 			ConsoleManagementProfile.OnClearRequested -= _view.ClearLogs;
 			ConsoleManagementProfile.OnCloseRequested -= CloseConsole;
@@ -90,7 +98,14 @@ namespace UShell.Runtime.Unity
 
 		private void Escape()
 		{
-			if (_view.IsVisible) CloseConsole();
+			if (_core.InteractiveSession.IsBusy)
+			{
+				_core.InteractiveSession.Cancel();
+			}
+			else if (_view.IsVisible)
+			{
+				CloseConsole();
+			}
 		}
 
 		private void Submit()
@@ -98,6 +113,20 @@ namespace UShell.Runtime.Unity
 			if (!_view.IsVisible) return;
 
 			string input = _view.CurrentInput;
+
+			if (_core.InteractiveSession.IsWaitingForPrompt)
+			{
+				_printer.Print(new LogEntry($"> {input}", LogType.Standard));
+				_core.InteractiveSession.SubmitInput(input);
+				_view.ClearInput();
+				return;
+			}
+
+			if (_core.InteractiveSession.IsBusy)
+			{
+				return;
+			}
+
 			if (string.IsNullOrWhiteSpace(input))
 			{
 				_view.RefocusInput();
@@ -121,6 +150,13 @@ namespace UShell.Runtime.Unity
 
 		private void InputChanged(string input)
 		{
+			if (_core.InteractiveSession.IsBusy)
+			{
+				_view.RenderAutocomplete(Array.Empty<CommandSuggestion>());
+				_view.RenderSignatures(Array.Empty<string>());
+				return;
+			}
+
 			if (string.IsNullOrWhiteSpace(input))
 			{
 				_view.RenderAutocomplete(Array.Empty<CommandSuggestion>());
@@ -157,7 +193,7 @@ namespace UShell.Runtime.Unity
 
 		private void HistoryUp()
 		{
-			if (!_view.IsVisible) return;
+			if (!_view.IsVisible || _core.InteractiveSession.IsBusy) return;
 
 			string? previous = _core.History.GetPrevious(_view.CurrentInput);
 			if (previous != null)
@@ -168,7 +204,7 @@ namespace UShell.Runtime.Unity
 
 		private void HistoryDown()
 		{
-			if (!_view.IsVisible) return;
+			if (!_view.IsVisible || _core.InteractiveSession.IsBusy) return;
 
 			string? next = _core.History.GetNext();
 			if (next != null)
@@ -179,7 +215,7 @@ namespace UShell.Runtime.Unity
 
 		private void TabComplete()
 		{
-			if (!_view.IsVisible) return;
+			if (!_view.IsVisible || _core.InteractiveSession.IsBusy) return;
 
 			string suggestion = _view.GetSelectedSuggestionName();
 			if (string.IsNullOrEmpty(suggestion)) return;
@@ -189,9 +225,25 @@ namespace UShell.Runtime.Unity
 			InputChanged(completedText);
 		}
 
-		private void LogAdded(LogEntry log)
+		private void UpdateInputState()
 		{
-			_view.AddLogEntry(log);
+			if (_core.InteractiveSession.IsWaitingForPrompt)
+			{
+				_view.SetInputMode(ConsoleInputMode.Prompt);
+			}
+			else if (_core.InteractiveSession.IsBusy)
+			{
+				_view.SetInputMode(ConsoleInputMode.Locked);
+			}
+			else
+			{
+				_view.SetInputMode(ConsoleInputMode.Standard);
+			}
+
+			if (_view.IsVisible)
+			{
+				_view.RefocusInput();
+			}
 		}
 
 		private static ReadOnlySpan<char> GetFirstWord(string input)

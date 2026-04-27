@@ -1,9 +1,13 @@
 ﻿#nullable enable
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using UShell.Runtime.Core.Abstractions;
 using UShell.Runtime.Core.Commands;
 using UShell.Runtime.Core.Diagnostics;
 using UShell.Runtime.Core.Execution.Binding;
+using UShell.Runtime.Core.Execution.Context;
+using UShell.Runtime.Core.Output;
 using UShell.Runtime.Core.Parsing;
 using UShell.Runtime.Core.Parsing.Syntax;
 
@@ -13,11 +17,19 @@ namespace UShell.Runtime.Core.Execution
 	{
 		private readonly ICommandRegistry _registry;
 		private readonly IArgumentBinder _binder;
+		private readonly IInteractiveSession _session;
+		private readonly IConsolePrinter _printer;
 
-		public CommandExecutor(ICommandRegistry registry, IArgumentBinder binder)
+		internal CommandExecutor(
+			ICommandRegistry registry,
+			IArgumentBinder binder,
+			IInteractiveSession session,
+			IConsolePrinter printer)
 		{
 			_registry = registry ?? throw new ArgumentNullException(nameof(registry));
 			_binder = binder ?? throw new ArgumentNullException(nameof(binder));
+			_session = session ?? throw new ArgumentNullException(nameof(session));
+			_printer = printer ?? throw new ArgumentNullException(nameof(printer));
 		}
 
 		public ExecutionResult<object?> Execute(string input)
@@ -45,18 +57,46 @@ namespace UShell.Runtime.Core.Execution
 			return Invoke(sig, bound.Value, node.StartIndex);
 		}
 
-		private static ExecutionResult<object?> Invoke(CommandSignature sig, object?[] args, int startIndex)
+		private ExecutionResult<object?> Invoke(CommandSignature sig, object?[] args, int startIndex)
 		{
+			ICommandContext? context = null;
+
+			if (sig.IsInteractive)
+			{
+				CancellationToken token = _session.StartSession(sig.Timeout!.Value);
+				context = new CommandContext(_session, _printer, token);
+			}
+
 			try
 			{
-				object? result = sig.Invoker.Invoke(args);
+				object? result = sig.Invoker.Invoke(context, args);
+
+				if (sig.IsInteractive && result is Task interactiveTask)
+				{
+					result = WrapInteractiveTaskAsync(interactiveTask, _session);
+				}
+
 				return ExecutionResult<object?>.Success(result);
 			}
 			catch (Exception ex)
 			{
+				if (sig.IsInteractive) _session.EndSession();
+
 				Exception inner = ex.InnerException ?? ex;
 				return ExecutionResult<object?>.Failure(
 					ShellError.Create(ShellErrorCode.Execute_Exception, startIndex, inner.Message));
+			}
+		}
+
+		private static async Task WrapInteractiveTaskAsync(Task task, IInteractiveSession session)
+		{
+			try
+			{
+				await task;
+			}
+			finally
+			{
+				session.EndSession();
 			}
 		}
 	}

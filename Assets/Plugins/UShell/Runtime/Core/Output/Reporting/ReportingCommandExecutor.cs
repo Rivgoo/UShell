@@ -43,7 +43,6 @@ namespace UShell.Runtime.Core.Output.Reporting
 		{
 			if (value is Task task)
 			{
-				_printer.Print(new LogEntry("Async command started...", LogType.Standard));
 				_ = AwaitAndReportTask(task);
 			}
 			else
@@ -57,7 +56,11 @@ namespace UShell.Runtime.Core.Output.Reporting
 			try
 			{
 				await task;
-				_printer.Print(new LogEntry("Async command completed successfully.", LogType.Success));
+			}
+			catch (OperationCanceledException)
+			{
+				string msg = RichText.Color("Command execution was aborted (Timeout or User Cancellation).", ShellPalette.ErrorMuted);
+				_printer.Print(new LogEntry(msg, LogType.Error));
 			}
 			catch (Exception ex)
 			{

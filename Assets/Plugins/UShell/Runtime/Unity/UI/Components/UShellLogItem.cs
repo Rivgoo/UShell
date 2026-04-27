@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
@@ -13,6 +14,7 @@ namespace UShell.Runtime.Unity.UI.Components
 	public sealed class UShellLogItem : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 	{
 		public LogType CurrentLogType { get; private set; }
+		public Guid? CurrentId { get; private set; }
 
 		[SerializeField] private Image _iconImage = null!;
 		[SerializeField] private TextMeshProUGUI _textComponent = null!;
@@ -54,6 +56,7 @@ namespace UShell.Runtime.Unity.UI.Components
 		public void ApplyData(LogEntry log, UShellUIConfiguration configuration)
 		{
 			CurrentLogType = log.Type;
+			CurrentId = log.Id;
 			_currentMessage = log.Message;
 
 			string displayText = _currentMessage;

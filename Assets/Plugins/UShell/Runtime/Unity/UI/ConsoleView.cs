@@ -11,7 +11,7 @@ namespace UShell.Runtime.Unity.UI
 	[DisallowMultipleComponent]
 	public sealed class ConsoleView : MonoBehaviour, IDisposable
 	{
-		public event Action<string> OnInputChanged;
+		public event Action<string> OnInputChanged = delegate { };
 
 		[SerializeField] private UShellUIConfiguration _configuration = null!;
 
@@ -60,6 +60,11 @@ namespace UShell.Runtime.Unity.UI
 			_inputField.DeactivateFocus();
 		}
 
+		public void SetInputMode(ConsoleInputMode mode)
+		{
+			_inputField.SetMode(mode);
+		}
+
 		public void RefocusInput()
 		{
 			_inputField.Refocus();
@@ -68,6 +73,11 @@ namespace UShell.Runtime.Unity.UI
 		public void AddLogEntry(LogEntry log)
 		{
 			_scrollView.AddLog(log);
+		}
+
+		public void UpdateLogEntry(Guid id, LogEntry log)
+		{
+			_scrollView.UpdateLog(id, log);
 		}
 
 		public void ClearLogs()
