@@ -16,41 +16,48 @@ namespace UShell.Editor.UI
 		{
 			serializedObject.Update();
 
-			EditorGUILayout.Space(10);
-			DrawHeader("Typography Settings");
+			EditorGUILayout.Space(5);
+
+			// --- General Settings ---
+			DrawHeader("General Settings");
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("_maxLogs"));
+
+			// --- Typography ---
+			DrawHeader("Typography");
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("_mainFont"));
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("_inputFontSize"));
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("_logFontSize"));
 
-			EditorGUILayout.Space(10);
+			// --- Global Monospace ---
 			DrawHeader("Global Monospace (ASCII Alignment)");
-			EditorGUILayout.PropertyField(serializedObject.FindProperty("_forceGlobalMonospace"));
+			SerializedProperty forceMonospaceProp = serializedObject.FindProperty("_forceGlobalMonospace");
+			EditorGUILayout.PropertyField(forceMonospaceProp);
 
-			if (serializedObject.FindProperty("_forceGlobalMonospace").boolValue)
+			if (forceMonospaceProp.boolValue)
 			{
 				EditorGUI.indentLevel++;
 				EditorGUILayout.PropertyField(serializedObject.FindProperty("_globalMonospaceWidth"));
 				EditorGUI.indentLevel--;
 			}
 
-			EditorGUILayout.Space(10);
+			// --- Suggestions ---
 			DrawHeader("Suggestions (Info Blocks)");
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("_suggestionBackgroundColor"));
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("_suggestionPaddingX"));
 
-			EditorGUILayout.Space(10);
-			DrawHeader("Colors & Themes");
+			// --- Colors & Themes ---
+			DrawHeader("Interface Colors");
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("_ghostTextColor"));
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("_promptColor"));
 
-			EditorGUILayout.Space(10);
+			// --- Log State Colors ---
 			DrawHeader("Log State Colors");
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("_standardLogColor"));
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("_successLogColor"));
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("_warningLogColor"));
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("_errorLogColor"));
 
-			EditorGUILayout.Space(10);
+			// --- Icons ---
 			DrawHeader("Icons");
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("_standardIcon"));
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("_successIcon"));
@@ -58,17 +65,22 @@ namespace UShell.Editor.UI
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("_errorIcon"));
 
 			EditorGUILayout.Space(10);
-			DrawHeader("Limits");
-			EditorGUILayout.PropertyField(serializedObject.FindProperty("_maxLogs"));
 
 			serializedObject.ApplyModifiedProperties();
 		}
 
+		/// <summary>
+		/// Draws a consistently spaced and styled header with a subtle separator line.
+		/// </summary>
 		private static void DrawHeader(string title)
 		{
+			EditorGUILayout.Space(15);
 			EditorGUILayout.LabelField(title, EditorStyles.boldLabel);
+
+			// Draw a soft separator line
 			Rect rect = EditorGUILayout.GetControlRect(false, 2f);
-			EditorGUI.DrawRect(rect, new Color(0.5f, 0.5f, 0.5f, 1f));
+			EditorGUI.DrawRect(rect, new Color(0.5f, 0.5f, 0.5f, 0.4f));
+
 			EditorGUILayout.Space(5);
 		}
 	}

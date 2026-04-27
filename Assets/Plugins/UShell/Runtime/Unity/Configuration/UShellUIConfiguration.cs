@@ -7,12 +7,15 @@ namespace UShell.Runtime.Unity.UI.Configuration
 	/// A <see cref="ScriptableObject"/> storing the global visual configuration for the UShell console.
 	/// </summary>
 	/// <remarks>
-	/// Modify this asset in the Editor to customize typography, spacing, UI color schemes, and icon references.
+	/// Modify this asset in the Editor to customize layout limits, typography, UI color schemes, and icon references.
+	/// Default values are pre-configured to match the standard UShell dark theme.
 	/// </remarks>
 	[CreateAssetMenu(fileName = "UShellUIConfiguration", menuName = "UShell/UI Configuration")]
 	public sealed class UShellUIConfiguration : ScriptableObject
 	{
-		[Header("Typography")]
+		[Tooltip("The maximum amount of log entries to retain visually before older ones are destroyed.")]
+		[SerializeField] private int _maxLogs = 150;
+
 		[Tooltip("The core TextMeshPro font asset used across all console elements.")]
 		[SerializeField] private TMP_FontAsset _mainFont = null!;
 
@@ -22,42 +25,36 @@ namespace UShell.Runtime.Unity.UI.Configuration
 		[Tooltip("Font size for all standard log entries.")]
 		[SerializeField] private float _logFontSize = 14f;
 
-		[Header("Global Monospace (ASCII Alignment)")]
 		[Tooltip("Forces ALL logs to use monospaced character widths. Fixes alignment when using proportional fonts.")]
 		[SerializeField] private bool _forceGlobalMonospace = true;
 
 		[Tooltip("The width of each character in 'em' units when forcing monospace.")]
 		[SerializeField] private float _globalMonospaceWidth = 0.6f;
 
-		[Header("Suggestions (Info Blocks)")]
 		[Tooltip("The background color behind the signature tooltips below the input field.")]
-		[SerializeField] private Color _suggestionBackgroundColor = new Color(0.15f, 0.15f, 0.15f, 0.9f);
+		[SerializeField] private Color _suggestionBackgroundColor = new Color(0.137f, 0.137f, 0.137f, 0.784f);
 
 		[Tooltip("Padding applied to the width of the suggestion text block.")]
-		[SerializeField] private float _suggestionPaddingX = 5f;
+		[SerializeField] private float _suggestionPaddingX = 20f;
 
-		[Header("Colors & Themes")]
 		[Tooltip("Color of the faded autocomplete suggestion text overlapping the user's input.")]
 		[SerializeField] private Color _ghostTextColor = new Color(0.4f, 0.4f, 0.4f, 0.5f);
 
 		[Tooltip("Color of the command line prefix icon (e.g., '>').")]
-		[SerializeField] private Color _promptColor = new Color(1f, 0.55f, 0f, 1f);
+		[SerializeField] private Color _promptColor = new Color(0.698f, 0.392f, 0.141f, 1f);
 
-		[Header("Log Text Colors")]
-		[SerializeField] private Color _standardLogColor = new Color(0.83f, 0.83f, 0.83f, 1f);
+		[SerializeField] private Color _standardLogColor = new Color(0.783f, 0.737f, 0.668f, 1f);
 		[SerializeField] private Color _successLogColor = new Color(0.42f, 0.6f, 0.33f, 1f);
-		[SerializeField] private Color _warningLogColor = new Color(0.86f, 0.86f, 0.67f, 1f);
-		[SerializeField] private Color _errorLogColor = new Color(0.96f, 0.28f, 0.28f, 1f);
+		[SerializeField] private Color _warningLogColor = new Color(0.962f, 0.636f, 0.158f, 1f);
+		[SerializeField] private Color _errorLogColor = new Color(0.933f, 0.286f, 0.306f, 1f);
 
-		[Header("Icons")]
 		[SerializeField] private Sprite _standardIcon = null!;
 		[SerializeField] private Sprite _successIcon = null!;
 		[SerializeField] private Sprite _warningIcon = null!;
 		[SerializeField] private Sprite _errorIcon = null!;
 
-		[Header("Layout")]
-		[Tooltip("The maximum amount of log entries to retain visually before older ones are destroyed.")]
-		[SerializeField] private int _maxLogs = 100;
+		/// <summary>Gets the maximum number of UI log items to keep active.</summary>
+		public int MaxLogs => _maxLogs;
 
 		/// <summary>Gets the main font assigned to the console UI.</summary>
 		public TMP_FontAsset MainFont => _mainFont;
@@ -109,8 +106,5 @@ namespace UShell.Runtime.Unity.UI.Configuration
 
 		/// <summary>Gets the sprite assigned for error log entries.</summary>
 		public Sprite ErrorIcon => _errorIcon;
-
-		/// <summary>Gets the maximum number of UI log items to keep active.</summary>
-		public int MaxLogs => _maxLogs;
 	}
 }
