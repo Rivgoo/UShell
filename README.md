@@ -5,7 +5,7 @@
 <h1 align="center">UShell</h1>
 
 <p align="center">
-  <b>A High-Performance, Modular In-Game Developer Console for Unity.</b>
+  <b>A high-performance, reflection-free, and architecturally clean developer console for Unity. </b>
 </p>
 
 <p align="center">
@@ -16,174 +16,346 @@
 
 ---
 
-## 📖 About UShell
+**UShell** is built for developers who demand robust tooling. It abandons the traditional (and costly) approach of scanning assemblies via reflection at startup. Instead, it relies on a fluent, statically-typed registration API.
 
-**UShell** is a robust and highly customizable in-game developer console designed to help you debug, manage, and interact with your Unity game at runtime. 
+## 🏛️ Architecture & Core Philosophy
 
-Unlike many other console assets that rely on slow reflection and hidden magic, UShell is built on strict software architecture principles (SOLID). It provides a clean, fast, and safe way to execute commands, view logs, and monitor game state without bloating your production builds.
+Understanding UShell's architecture helps you leverage its full potential:
 
-Whether you need to give the player items, teleport across the map, or check memory allocation in a standalone build, UShell gives you the tools to do it elegantly.
-
-## ✨ Key Features
-
-*   **Fluent API (No Reflection):** Commands are registered explicitly via a clean, chainable API. No assembly scanning, no hidden `[Attributes]`, and zero startup overhead.
-*   **High Performance:** The lexical and syntax parser is built using `ReadOnlySpan<char>`, `ref struct`, and `ArrayPool<T>`. This ensures a zero-allocation parsing phase, keeping the Garbage Collector completely silent during command execution.
-*   **Smart Autocomplete:** Features a Trie-based real-time autocomplete engine. It instantly suggests commands, shows parameter signatures, and warns about type mismatches *before* you press Enter.
-*   **Clean Architecture:** The core logic (`UShell.Core`) has **zero dependencies on Unity**. It strictly separates parsing, command registry, and execution from the UI and engine layer.
-*   **Type Safety & Extensibility:** Comes with built-in parsers for standard types (`int`, `float`, `bool`) and Unity types (`Vector3`, `Color`, `GameObject`). Easily register your own parsers for custom game entities.
-*   **Environment Contexts:** Restrict specific cheat commands strictly to the `Editor` or `Development` builds, ensuring they never leak into your `Release` game.
+1. **Zero-Reflection / Explicit Registration:** UShell does not use `[ConsoleCommand]` attributes. Instead, you construct `CommandSignatures` using a Builder pattern (`ShellBuilder`). This guarantees predictable memory usage and zero CPU spikes during game initialization.
+2. **The Execution Pipeline:** 
+   * **Lexing & Parsing:** User input (e.g., `spawn -count 5 "Orc"`) is tokenized and parsed into an Abstract Syntax Tree (AST).
+   * **Binding:** The AST nodes are mapped to your command's required C# types via `ITypeParser<T>` implementations.
+   * **Invocation:** The execution delegate is invoked with strongly-typed arguments.
+3. **Dependency Inversion:** The core engine (`IShellCore`) knows absolutely nothing about Unity's UI (Canvas, TextMeshPro) or Input systems (New Input System, Rewired). It communicates with the outside world purely through abstractions (`IConsolePrinter`, `IInputProvider`).
+4. **Interactive Execution:** Unlike traditional consoles that just "fire and forget", UShell commands can suspend their execution to await user text input, confirm Y/N prompts, or update live progress bars without freezing the main Unity thread.
 
 ---
 
-## 🚀 Installation
+## 📦 1. Installation & Quick Start
 
-### Option 1: Unity Package Manager (UPM)
-1. Open Unity and go to `Window > Package Manager`.
-2. Click the `+` icon in the top left corner and select **"Add package from git URL..."**.
-3. Enter the URL of this repository:
-   ```text
-   https://github.com/YOUR_USERNAME/UShell.git?path=/UShell/Assets/Plugins/UShell
-   ```
-4. Click **Add**.
+**Requirements:** Unity 2021.3+ | TextMeshPro | Unity New Input System (default, can be swapped).
 
-### Option 2: Manual Install
-Download the latest release and extract the `UShell` folder directly into your project's `Assets/Plugins/` directory.
+### The Component-Based Setup
+1. Drag the `UShellManager` and `ComponentShellBootstrapper` components onto an empty GameObject (it will automatically be marked as `DontDestroyOnLoad`).
+2. Add the `ConsoleView` UI hierarchy to your Canvas (or use the provided prefab).
+3. In the Bootstrapper inspector, configure which built-in profiles you want (Math, Diagnostics, etc.) and your active `EnvironmentTag`.
+4. Hit Play, press `` ` `` (Backquote/Tilde) to toggle the console.
 
----
-
-## 🛠️ Quick Start
-
-Integrating UShell into your game is incredibly straightforward. You define your commands in a **Profile**, and then register that profile with the **ShellBuilder**.
-
-### 1. Create a Command Profile
-Group related commands into a profile. Here, you can easily inject your game's systems using standard Dependency Injection.
-
-```csharp
-using UShell.Runtime.Core.Abstractions;
-using UShell.Runtime.Core.Commands.Fluent;
-using UShell.Runtime.Core.Output;
-
-public class PlayerDebugProfile : ShellProfile
-{
-    private readonly IPlayerService _playerService;
-
-    // Inject your game services through the constructor
-    public PlayerDebugProfile(IConsolePrinter printer, IPlayerService playerService) : base(printer)
-    {
-        _playerService = playerService;
-    }
-
-    protected override void Configure(ICommandBuilder builder)
-    {
-        builder.WithName("player.heal")
-            .WithDescription("Restores the player's health to maximum.")
-            .WithAlias("heal")
-            .Executes(() => 
-            {
-                _playerService.HealFull();
-                PrintSuccess("Player health restored!");
-            });
-
-        builder.WithName("player.give")
-            .WithDescription("Gives a specific amount of an item to the player.")
-            .AddParameter<string>("itemId")
-            .AddOptionalParameter<int>("amount", 1) // Default value is 1
-            .Executes<string, int>((id, amount) => 
-            {
-                _playerService.GiveItem(id, amount);
-                Print($"Gave {amount}x {id} to the player.");
-            });
-    }
-}
-```
-
-### 2. Bootstrap the Console
-In your game's entry point (or bootstrap script), build the console core and pass it to the UI controller.
+### Your First Custom Command
+To add commands to the bootstrapper, create a `MonoBehaviour` implementing `IShellConfigurator`:
 
 ```csharp
 using UnityEngine;
+using UShell.Runtime.Unity.Bootstrapping;
 using UShell.Runtime.Core.Bootstrapping;
-using UShell.Runtime.Core.Commands;
 
-public class GameBootstrapper : MonoBehaviour
+public class GameShellConfigurator : MonoBehaviour, IShellConfigurator
 {
-    [SerializeField] private UShell.Runtime.Unity.Output.UnityConsolePrinter _printer;
-
-    private void Start()
+    public void Configure(ShellBuilder builder, ShellBootstrapContext context)
     {
-        // 1. Initialize your game services
-        IPlayerService myPlayerService = new PlayerService();
-
-        // 2. Build the UShell Core
-        var shellCore = new ShellBuilder(EnvironmentTag.Development)
-            .AddProfile(new PlayerDebugProfile(_printer, myPlayerService))
-            .Build();
-            
-        // The console is now ready! 
-        // (If using the provided UShellManager prefab, it handles UI setup for you).
+        // Add a custom profile. We pass the printer so the profile can output text.
+        builder.AddProfile(new PlayerCheatsProfile(context.Printer));
     }
 }
 ```
 
 ---
 
-## 🧠 Advanced Usage
+## 🛠️ 2. Profiles & The Fluent API (Deep Dive)
 
-### Custom Type Parsers
-Want to pass your own `ItemType` enum or a custom `PlayerId` struct directly in the console? Just create a type parser!
+Commands in UShell are grouped into logical collections called **Profiles**. To create one, inherit from `ShellProfile` (which gives you helper methods like `Print`, `PrintWarning`, etc.) and implement `Configure(ICommandBuilder builder)`.
+
+### The `ICommandBuilder` API
+The entry point is `builder.WithName("command.name")`. 
+*   **Rule:** Names cannot contain spaces, quotes, brackets, or commas.
+*   **Returns:** An `ICommandConfigurator` instance to chain the rest of your setup.
+
+### The `ICommandConfigurator` API
+
+#### 1. Metadata Methods
+*   `.WithDescription(string desc)`: Sets the human-readable summary shown when the user types `help`.
+*   `.WithAlias(string alias)`: Adds an alternative name that resolves to this command (e.g., `rm` for `remove`). You can call this multiple times.
+*   `.RestrictedTo(EnvironmentTag tags)`: A bitmask (`Editor`, `Development`, `Release`, `Any`) defining where this command exists. Useful for stripping cheat commands from production builds automatically.
+
+#### 2. Parameter Binding
+Order matters! Positional arguments passed by the user will be bound in the exact order you declare them here.
+*   `.AddParameter<T>(string name)`: Declares a required parameter of type `T`. The `name` is used for named arguments (e.g., `-amount 50`). `T` must have a registered `ITypeParser`.
+*   `.AddOptionalParameter<T>(string name, T defaultValue)`: Declares an optional parameter. If the user omits it, `defaultValue` is injected. **Rule:** Optional parameters must be declared *after* all required parameters.
+
+#### 3. Autocomplete Suggestions
+UShell provides an IDE-like fuzzy search. You can attach suggestions to the **last added parameter**.
+*   `.WithSuggestions(IEnumerable<string> staticList)`: Provides a fixed list of suggestions.
+    ```csharp
+    .AddParameter<string>("weather")
+    .WithSuggestions(new[] { "clear", "rain", "storm" })
+    ```
+*   `.WithSuggestions(Func<SuggestionContext, IEnumerable<string>> provider)`: Dynamic resolution. The `SuggestionContext` contains the partial text the user has typed so far.
+    ```csharp
+    .AddParameter<string>("playerName")
+    .WithSuggestions(ctx => NetworkManager.GetActivePlayers()
+                                          .Where(p => p.StartsWith(ctx.PartialValue)))
+    ```
+*   `.WithSuggestions(ISuggestionProvider provider)`: For complex, reusable suggestion logic encapsulated in a dedicated class.
+
+*Note: Enums and Booleans automatically generate their own suggestions. You don't need to manually configure them.*
+
+#### 4. Execution Delegates
+Every command configuration chain **must end** with an `Executes...` method to bind the actual C# logic. The arity (number of arguments) and types of the delegate *must perfectly match* the parameters you added.
+
+*   **Synchronous Execution:**
+    *   `.Executes(Action action)`
+    *   `.Executes<T1, T2...>(Action<T1, T2...> action)` (Up to 5 parameters)
+    *   `.ExecutesReturning<TResult>(Func<TResult> func)`: The returned value will be automatically printed to the console as a success log.
+    *   `.ExecutesReturning<T1, TResult>(Func<T1, TResult> func)`
+
+*   **Asynchronous Execution:**
+    *   `.ExecutesAsync(Func<Task> action)`: Awaits the task. If it throws, the exception is caught and printed gracefully.
+
+#### Complete Profile Example:
+```csharp
+public class ItemProfile : ShellProfile
+{
+    public ItemProfile(IConsolePrinter printer) : base(printer) { }
+
+    protected override void Configure(ICommandBuilder builder)
+    {
+        builder.WithName("item.give")
+            .WithDescription("Adds an item to the local player's inventory.")
+            .WithAlias("give")
+            .RestrictedTo(EnvironmentTag.Editor | EnvironmentTag.Development)
+            
+            .AddParameter<string>("itemId")
+            .WithSuggestions(GetItemDatabaseIds) // Dynamic suggestions
+            
+            .AddOptionalParameter<int>("amount", 1)
+            .AddOptionalParameter<bool>("equipImmediately", false)
+            
+            // The signature of GiveItem MUST be (string, int, bool)
+            .Executes<string, int, bool>(GiveItem);
+    }
+
+    private void GiveItem(string id, int amount, bool equip)
+    {
+        PrintSuccess($"Gave {amount}x '{id}'. Equipped: {equip}");
+    }
+
+    private IEnumerable<string> GetItemDatabaseIds(SuggestionContext ctx) => new[] { "sword", "shield", "potion" };
+}
+```
+
+---
+
+## ⏳ 3. Interactive Commands (`ICommandContext`)
+
+Sometimes a command takes a long time, or requires the user to confirm a destructive action. UShell allows commands to "lock" the console and interact with the user via `ICommandContext`.
+
+**Rules for Interactive Commands:**
+1. You must call `.WithTimeout(TimeSpan limit)` before execution.
+2. You must bind using `.ExecutesInteractiveAsync(...)`.
+3. The first argument of your delegate must be `ICommandContext`.
+
+### The `ICommandContext` API
+*   `CancellationToken Token`: Triggered if the timeout is reached, or if the user presses `Escape` to abort. Pass this to your game's async tasks.
+*   `Task<bool> ConfirmAsync(string msg)`: Pauses execution, prompts the user with `(y/n)`, and awaits their response.
+*   `Task<string> PromptAsync(string msg)`: Pauses execution and waits for the user to type a string.
+*   `IProgressReporter CreateProgressBar(string taskName)`: Spawns a visual progress bar.
+*   `Print(...)`, `PrintSuccess(...)`, etc.: Thread-safe methods to push logs while the task is running.
+
+### Interactive Example:
+```csharp
+builder.WithName("db.wipe")
+    .WithTimeout(TimeSpan.FromSeconds(30))
+    .ExecutesInteractiveAsync(WipeDatabaseAsync);
+
+private async Task WipeDatabaseAsync(ICommandContext ctx)
+{
+    // 1. Ask for confirmation
+    bool confirmed = await ctx.ConfirmAsync("Wipe the entire database?");
+    if (!confirmed) 
+    {
+        ctx.PrintWarning("Aborted by user.");
+        return; 
+    }
+
+    // 2. Spawn a progress bar (use 'using' so it auto-completes to 100% when disposed)
+    using (IProgressReporter progress = ctx.CreateProgressBar("Deleting..."))
+    {
+        for (int i = 0; i <= 100; i += 10)
+        {
+            ctx.Token.ThrowIfCancellationRequested(); // Abort if user hits Escape
+            progress.Report(i / 100f, $"{i}% complete");
+            await Task.Delay(250, ctx.Token); // Fake work
+        }
+    }
+    
+    ctx.PrintSuccess("Database wiped successfully.");
+}
+```
+
+---
+
+## 🔠 4. Custom Type Parsers (`ITypeParser<T>`)
+
+UShell's Argument Binder converts strings into C# objects. Out of the box, it supports `int`, `float`, `bool`, `string`, `Vector2/3/4`, `Quaternion`, `Color`, and `GameObject` (via `GameObject.Find`).
+
+You can teach UShell to understand your game's custom types by creating a `TypeParser<T>`. 
+
+### Building a Custom Parser
+Inherit from `TypeParser<T>` and implement `ParseTyped(string input)`. 
+Return `ExecutionResult<T>.Success` or `ExecutionResult<T>.Failure`. Use `ShellError.Create` for failures to guarantee proper UI visualization.
 
 ```csharp
-public class ItemTypeParser : TypeParser<ItemType>
+using UShell.Runtime.Core.Execution;
+using UShell.Runtime.Core.Diagnostics;
+using UShell.Runtime.Core.Parsing.Types;
+
+// Let's parse a custom struct: public struct PlayerId { public int Id; }
+
+public class PlayerIdParser : TypeParser<PlayerId>
 {
-    public override ExecutionResult<ItemType> ParseTyped(string input)
+    public override ExecutionResult<PlayerId> ParseTyped(string input)
     {
-        if (Enum.TryParse(input, true, out ItemType result))
+        if (int.TryParse(input, out int id))
         {
-            return ExecutionResult<ItemType>.Success(result);
+            // Verify it exists in your game
+            if (PlayerManager.PlayerExists(id))
+            {
+                return ExecutionResult<PlayerId>.Success(new PlayerId { Id = id });
+            }
+            return ExecutionResult<PlayerId>.Failure(
+                ShellError.Create(ShellErrorCode.Bind_CustomError, -1, $"Player with ID {id} not found."));
         }
 
-        return ExecutionResult<ItemType>.Failure(
-            ShellError.Create(ShellErrorCode.Bind_TypeMismatch, -1, input, "ItemType"));
+        return ExecutionResult<PlayerId>.Failure(
+            ShellError.Create(ShellErrorCode.Bind_CustomError, -1, $"'{input}' is not a valid integer."));
     }
 }
-
-// Then register it during setup:
-// new ShellBuilder().AddTypeParser(new ItemTypeParser())...
 ```
 
-### Environment Restrictions
-Prevent dangerous commands from shipping to players by tagging them.
+### Registering the Parser
+In your `IShellConfigurator` or manual bootstrapping setup:
+```csharp
+builder.AddTypeParser(new PlayerIdParser());
+```
+Now, you can seamlessly use `.AddParameter<PlayerId>("player")` in your profiles.
+
+---
+
+## 💾 5. Session State & Macros
+
+The `ISessionState` acts as a runtime memory store. Users can assign command outputs or literals to variables using the `$` syntax.
+
+**In the console UI:**
+```bash
+> $speed = 5.5
+> $boss = spawn "Dragon"
+> set_speed $boss $speed
+```
+
+**Accessing Session State from C#:**
+The `ISessionState` is injected into `ShellBootstrapContext` and can be passed to your profiles.
+*   `TryGetValue(string name, out object value)`: Retrieve a stored macro.
+*   `SetValue(string name, object value)`: Programmatically set a macro.
+*   `Clear()`: Wipes all memory.
+
+Built-in commands `macro.list`, `macro.delete`, and `macro.clear` manage this state.
+
+---
+
+## 🎨 6. Formatting & Visuals (`ShellProfile` & `ShellPalette`)
+
+UShell prioritizes beautiful, readable output. Inside any `ShellProfile`, use the built-in protected methods instead of `Debug.Log`.
+
+### Output Methods
+*   `Print(string)`: Standard white/grey text.
+*   `PrintSuccess(string)`: Green text.
+*   `PrintWarning(string)`: Amber/Yellow text.
+*   `PrintError(string)`: Red text.
+*   `PrintList(string title, IReadOnlyList<string> items, int limit)`: Formats a numbered list under a section header, truncating if it exceeds `limit`.
+*   `PrintTable(headers, rows, TableStyle)`: Automatically calculates column widths and draws an ASCII table.
+
+### `ShellPalette` & `RichText`
+Never hardcode hex colors. Use `ShellPalette` constants to ensure your custom outputs match the console's theme. Combine them with the `RichText` utility.
 
 ```csharp
-builder.WithName("kill_all_enemies")
-    .RestrictedTo(EnvironmentTag.Editor | EnvironmentTag.Development)
-    .Executes(KillEnemies);
+string entityName = RichText.Color("Dragon", ShellPalette.SyntaxValue);
+string hpText = RichText.Bold(RichText.Color("5000", ShellPalette.SyntaxNumber));
+
+Print($"Spawned {entityName} with {hpText} HP.");
+```
+
+### `ProfileFormatter`
+A utility class with standard layout helpers:
+*   `ProfileFormatter.FormatSectionHeader("my title")`: Generates `── my title ───`
+*   `ProfileFormatter.AppendKeyValue(StringBuilder, key, value)`: Aligns key-value pairs cleanly.
+
+---
+
+## ⚙️ 7. Manual Bootstrapping (Zenject / VContainer)
+
+If you don't want to use the `ComponentShellBootstrapper`, you can wire up UShell entirely in code using `CoreShellBootstrapper`. This is ideal for pure DI architectures.
+
+```csharp
+public class TerminalInstaller : MonoInstaller
+{
+    [SerializeField] private UShellManager _manager; // The DontDestroyOnLoad root
+    
+    public override void InstallBindings()
+    {
+        // 1. Create the bootstrapper
+        var bootstrapper = new CoreShellBootstrapper(EnvironmentTag.Development, mirrorLogsToUnityConsole: true);
+        
+        // 2. Add dependencies
+        bootstrapper.AddTypeParser(new PlayerIdParser());
+        bootstrapper.AddProfile(context => new NetworkAdminProfile(context.Printer, Container.Resolve<INetworkService>()));
+        
+        // 3. Build the core architecture
+        BootstrapResult result = bootstrapper.Build();
+        
+        // 4. Initialize the Unity Manager wrapper
+        _manager.Initialize(result);
+    }
+}
 ```
 
 ---
 
-## 🤝 Contributing
+## 🖥️ 8. UI & Custom Input Providers
 
-This project is open-source, and community contributions are highly appreciated! 
+### UI Configuration
+The visual appearance of UShell is controlled by a ScriptableObject: `UShell_UI_Configuration`.
+*   **Typography:** Assign custom `TMP_FontAsset` and tweak font sizes.
+*   **Colors:** Change prompt colors, background suggestion colors, and standard log colors.
+*   **Monospace Override:** If your font isn't monospaced, ASCII tables will misalign. Enable `ForceGlobalMonospace` and set the `em` width (usually `0.6`) to force TextMeshPro to align characters perfectly.
 
-If you want to contribute, please follow these guidelines:
-1. **Maintain Clean Architecture:** Do not add Unity-specific code (`UnityEngine`) inside the `UShell.Core` assembly.
-2. **Zero Allocations:** When modifying the parser or lexer, avoid allocating new reference types. Use `ReadOnlySpan<char>` and object pooling.
-3. **Small PRs:** Keep Pull Requests focused on a single feature or bug fix.
+### Custom Input (`IInputProvider`)
+UShell uses Unity's New Input System by default (`InputSystemProvider.cs`). If you use Rewired or the legacy Input Manager, write a class that implements `IInputProvider` and attach it to the `UShellManager` GameObject. UShell will automatically detect and use it.
 
-To get started:
-1. Fork the repository.
-2. Create a feature branch (`git checkout -b feature/amazing-feature`).
-3. Commit your changes (`git commit -m 'Add amazing feature'`).
-4. Push to the branch (`git push origin feature/amazing-feature`).
-5. Open a Pull Request.
+```csharp
+public interface IInputProvider
+{
+    event Action OnToggleConsole; // Toggle UI visibility (e.g., Tilde key)
+    event Action OnSubmit;        // Enter command (e.g., Enter key)
+    event Action OnHistoryUp;     // E.g., Up Arrow
+    event Action OnHistoryDown;   // E.g., Down Arrow
+    event Action OnAutocomplete;  // E.g., Tab key
+    event Action OnEscape;        // Abort interactive tasks / close console
+    
+    // UShell will call this to disable hotkeys when the console is closed
+    void SetUIInputActive(bool active); 
+}
+```
+
+---
+
+## 📦 9. Built-in Profiles Summary
+*   **`ConsoleManagementProfile`**: Core commands like `help`, `clear`, `history`, `alias`, and macro controls.
+*   **`EnvironmentInfoProfile`**: System commands like `info`, `env`, `platform`, `game.version`.
+*   **`MathUtilityProfile`**: Includes `eval` (advanced math expression evaluator), `random`, and `convert` (metric/imperial, hex/bin/dec conversions).
+*   **`RuntimeDiagnosticsProfile`**: Editor/Dev performance tools like `stats` (FPS, Frame Time), `mem` (GC and Heap allocations), `objects`, `layer.find`, and `prefs.clear`.
 
 ---
 
 ## 📄 License
-
-This project is licensed under the **MIT License**.
-
-You are free to use, modify, and distribute this software in your personal or commercial projects without any restrictions. The intellectual property of the core architecture remains with the original author. If you build upon this, a credit link to this repository is appreciated but not mandatory.
-
-See the [LICENSE](LICENSE) file for more details.
+This project is provided "AS IS" without warranty of any kind. You are free to use, modify, and distribute it within your commercial and non-commercial Unity projects.
