@@ -7,8 +7,15 @@ using UShell.Runtime.Core.Parsing.Types;
 
 namespace UShell.Runtime.Unity.Parsing.Types
 {
+	/// <summary>
+	/// Parses a <see cref="UnityEngine.Vector3"/> from a comma or space-separated string.
+	/// </summary>
+	/// <remarks>
+	/// Valid inputs include <c>1.5, 2.5, 3</c> or <c>1.5 2.5 3</c>.
+	/// </remarks>
 	public sealed class Vector3Parser : TypeParser<Vector3>
 	{
+		/// <inheritdoc/>
 		public override ExecutionResult<Vector3> ParseTyped(string input)
 		{
 			string[] parts = input.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);

@@ -9,9 +9,15 @@ using LogType = UShell.Runtime.Core.Output.LogType;
 
 namespace UShell.Runtime.Unity.UI.Components
 {
+	/// <summary>
+	/// Manages the scrolling list of log entries, handling object pooling, instantiation, and auto-scrolling logic.
+	/// </summary>
 	[RequireComponent(typeof(ScrollRect))]
 	public sealed class UShellScrollView : MonoBehaviour
 	{
+		/// <summary>
+		/// Fired when logs are added or removed, reporting the new totals.
+		/// </summary>
 		public event Action<int, int, int> OnStatsChanged = delegate { };
 
 		[SerializeField] private RectTransform _content = null!;
@@ -35,12 +41,18 @@ namespace UShell.Runtime.Unity.UI.Components
 			_scrollRect.onValueChanged.AddListener(HandleScrollChanged);
 		}
 
+		/// <summary>
+		/// Assigns the configuration and resets the view state.
+		/// </summary>
 		public void Initialize(UShellUIConfiguration configuration)
 		{
 			_configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 			Clear();
 		}
 
+		/// <summary>
+		/// Appends a new log to the bottom of the list. Reuses the oldest entry if the capacity limit is reached.
+		/// </summary>
 		public void AddLog(LogEntry log)
 		{
 			UShellLogItem item;
@@ -81,6 +93,9 @@ namespace UShell.Runtime.Unity.UI.Components
 			}
 		}
 
+		/// <summary>
+		/// Locates an existing log by its ID and updates its content without moving it.
+		/// </summary>
 		public void UpdateLog(Guid id, LogEntry log)
 		{
 			if (_logMap.TryGetValue(id, out UShellLogItem item))
@@ -101,6 +116,9 @@ namespace UShell.Runtime.Unity.UI.Components
 			}
 		}
 
+		/// <summary>
+		/// Destroys all visual log items and resets the UI state.
+		/// </summary>
 		public void Clear()
 		{
 			foreach (var item in _activeLogs)

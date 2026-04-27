@@ -6,8 +6,18 @@ using UShell.Runtime.Core.Commands;
 
 namespace UShell.Runtime.Core.Output.Formatting
 {
+	/// <summary>
+	/// A utility class providing standard formatting methods for rich-text console output.
+	/// </summary>
+	/// <remarks>
+	/// Use these methods inside your <see cref="UShell.Runtime.Core.Abstractions.ShellProfile"/> 
+	/// to ensure your custom commands match the visual style of the built-in shell commands.
+	/// </remarks>
 	public static class ProfileFormatter
 	{
+		/// <summary>
+		/// Formats a string as a standardized section header (e.g., <c>── TITLE ───</c>).
+		/// </summary>
 		public static string FormatSectionHeader(string title)
 		{
 			string left = RichText.Color("  ── ", ShellPalette.AccentMuted);
@@ -16,28 +26,44 @@ namespace UShell.Runtime.Core.Output.Formatting
 			return left + name + right;
 		}
 
+		/// <summary>
+		/// Returns a string of spaces for indentation.
+		/// </summary>
+		/// <param name="level">The depth level. Each level equals two spaces.</param>
 		public static string Indent(int level)
 		{
 			return new string(' ', level * 2);
 		}
 
+		/// <summary>
+		/// Appends a standardized key-value pair to a StringBuilder (key is muted, value is primary text).
+		/// </summary>
 		public static void AppendKeyValue(StringBuilder sb, string key, string value)
 		{
 			string k = RichText.Color(key.PadRight(14), ShellPalette.TextMuted);
 			sb.Append(Indent(1)).Append(k).Append("  ").AppendLine(value);
 		}
 
+		/// <summary>
+		/// Appends a wider key-value pair with a custom color for the value text.
+		/// </summary>
 		public static void AppendKeyValueWide(StringBuilder sb, string key, string value, string valueColor)
 		{
 			string k = RichText.Color(key.PadRight(20), ShellPalette.TextMuted);
 			sb.Append(Indent(1)).Append(k).Append("  ").AppendLine(RichText.Color(value, valueColor));
 		}
 
+		/// <summary>
+		/// Wraps text in the specified rich-text color.
+		/// </summary>
 		public static string FormatStat(string text, string color)
 		{
 			return RichText.Color(text, color);
 		}
 
+		/// <summary>
+		/// Formats a boolean value as a colored "yes" (green) or "no" (muted grey).
+		/// </summary>
 		public static string FormatBool(bool value)
 		{
 			return value
@@ -45,6 +71,9 @@ namespace UShell.Runtime.Core.Output.Formatting
 				: RichText.Color("no", ShellPalette.TextMuted);
 		}
 
+		/// <summary>
+		/// Word-wraps text to ensure no line exceeds the maximum length.
+		/// </summary>
 		public static string WrapText(string text, int maxLineLength)
 		{
 			if (string.IsNullOrEmpty(text)) return string.Empty;
@@ -72,6 +101,9 @@ namespace UShell.Runtime.Core.Output.Formatting
 			return sb.ToString();
 		}
 
+		/// <summary>
+		/// Formats a full multiline usage signature showing all parameters and their types.
+		/// </summary>
 		public static string FormatUsageSignature(CommandSignature sig, int maxWidth)
 		{
 			var sb = new StringBuilder();
@@ -106,6 +138,9 @@ namespace UShell.Runtime.Core.Output.Formatting
 			return sb.ToString();
 		}
 
+		/// <summary>
+		/// Formats a compact, single-line version of a command signature.
+		/// </summary>
 		public static string FormatCompactSignature(CommandSignature sig)
 		{
 			var sb = new StringBuilder();
@@ -127,6 +162,9 @@ namespace UShell.Runtime.Core.Output.Formatting
 			return sb.ToString();
 		}
 
+		/// <summary>
+		/// Returns colored text badges representing the allowed environments for a command.
+		/// </summary>
 		public static string FormatEnvironmentTags(EnvironmentTag tags)
 		{
 			if (tags == EnvironmentTag.Any) return RichText.Color("Any", ShellPalette.TextMuted);
@@ -139,6 +177,9 @@ namespace UShell.Runtime.Core.Output.Formatting
 			return string.Join("  ", parts);
 		}
 
+		/// <summary>
+		/// Simplifies raw .NET type names (e.g., <c>System.Int32</c> becomes <c>int</c>) for UI display.
+		/// </summary>
 		public static string FriendlyTypeName(Type t)
 		{
 			if (t == typeof(int)) return "int";

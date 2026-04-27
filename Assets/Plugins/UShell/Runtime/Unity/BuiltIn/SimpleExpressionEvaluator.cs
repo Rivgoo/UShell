@@ -7,6 +7,13 @@ using UShell.Runtime.Core.Execution;
 
 namespace UShell.Runtime.Unity.BuiltIn
 {
+	/// <summary>
+	/// An internal utility for evaluating string-based mathematical expressions.
+	/// </summary>
+	/// <remarks>
+	/// Used primarily by the <see cref="MathUtilityProfile"/> to process the <c>eval</c> command.
+	/// Not intended for external use.
+	/// </remarks>
 	internal static class SimpleExpressionEvaluator
 	{
 		public static ExecutionResult<double> Evaluate(string expression)

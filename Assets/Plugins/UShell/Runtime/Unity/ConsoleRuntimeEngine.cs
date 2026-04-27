@@ -11,6 +11,13 @@ using UShell.Runtime.Unity.UI;
 
 namespace UShell.Runtime.Unity
 {
+	/// <summary>
+	/// The internal traffic controller bridging the Input layer, the UI View layer, and the Core Execution logic.
+	/// </summary>
+	/// <remarks>
+	/// This class strictly handles event binding. It listens to keyboard shortcuts, pushes text to the executor, 
+	/// retrieves history, and updates UI components dynamically.
+	/// </remarks>
 	internal sealed class ConsoleRuntimeEngine : IDisposable
 	{
 		private readonly IShellCore _core;

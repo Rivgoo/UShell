@@ -12,15 +12,25 @@ using UShell.Runtime.Unity.Output;
 
 namespace UShell.Runtime.Unity.BuiltIn
 {
+	/// <summary>
+	/// A built-in profile that provides commands for evaluating Unity performance metrics and editor state.
+	/// </summary>
+	/// <remarks>
+	/// Registers commands such as <c>stats</c>, <c>mem</c>, <c>gc</c>, and scene querying tools.
+	/// </remarks>
 	public sealed class RuntimeDiagnosticsProfile : ShellProfile
 	{
 		private readonly UnityConsolePrinter _unityPrinter;
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="RuntimeDiagnosticsProfile"/> class.
+		/// </summary>
 		public RuntimeDiagnosticsProfile(UnityConsolePrinter printer) : base(printer)
 		{
 			_unityPrinter = printer;
 		}
 
+		/// <inheritdoc/>
 		protected override void Configure(ICommandBuilder builder)
 		{
 			builder.WithName("stats")

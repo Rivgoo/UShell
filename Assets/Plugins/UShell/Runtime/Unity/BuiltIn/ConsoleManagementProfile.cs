@@ -14,15 +14,31 @@ using UShell.Runtime.Core.Suggestions;
 
 namespace UShell.Runtime.Unity.BuiltIn
 {
+	/// <summary>
+	/// A built-in profile that provides essential shell management commands.
+	/// </summary>
+	/// <remarks>
+	/// Registers core functionality such as <c>help</c>, <c>clear</c>, <c>history</c>, and macro/alias management.
+	/// </remarks>
 	public sealed class ConsoleManagementProfile : ShellProfile
 	{
+		/// <summary>
+		/// Fired when the user executes the <c>clear</c> command, signaling the UI to purge the log history.
+		/// </summary>
 		public static event Action? OnClearRequested;
+
+		/// <summary>
+		/// Fired when the user executes the <c>close</c> command, signaling the UI to hide the console.
+		/// </summary>
 		public static event Action? OnCloseRequested;
 
 		private readonly ICommandRegistry _registry;
 		private readonly ICommandHistory _history;
 		private readonly ISessionState _sessionState;
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ConsoleManagementProfile"/> class.
+		/// </summary>
 		public ConsoleManagementProfile(
 			IConsolePrinter printer,
 			ICommandRegistry registry,
@@ -35,6 +51,7 @@ namespace UShell.Runtime.Unity.BuiltIn
 			_sessionState = sessionState ?? throw new ArgumentNullException(nameof(sessionState));
 		}
 
+		/// <inheritdoc/>
 		protected override void Configure(ICommandBuilder builder)
 		{
 			builder.WithName("help")

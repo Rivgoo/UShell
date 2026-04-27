@@ -2,13 +2,25 @@
 
 namespace UShell.Runtime.Core.Suggestions
 {
+	/// <summary>
+	/// Exposes algorithmic logic to score string similarities for autocompletion mechanics.
+	/// </summary>
 	public static class FuzzyMatcher
 	{
+		/// <summary>
+		/// Evaluates how closely a search query matches a target string based on sequence and casing.
+		/// </summary>
+		/// <param name="query">The user's typed input.</param>
+		/// <param name="target">The candidate string to evaluate.</param>
+		/// <returns>A positive integer score indicating match strength, or -1 if it does not match.</returns>
 		public static int Score(string query, string target)
 		{
 			return Score(query.AsSpan(), target.AsSpan());
 		}
 
+		/// <summary>
+		/// Evaluates how closely a search query matches a target string using memory-efficient Spans.
+		/// </summary>
 		public static int Score(ReadOnlySpan<char> query, ReadOnlySpan<char> target)
 		{
 			if (query.IsEmpty) return 0;

@@ -1,11 +1,19 @@
 ﻿#nullable enable
 using System;
 using UnityEngine;
+using UShell.Runtime.Core.Registry;
 using UShell.Runtime.Unity.Inputs;
 using UShell.Runtime.Unity.UI;
 
 namespace UShell.Runtime.Unity.Bootstrapping
 {
+	/// <summary>
+	/// The persistent root <see cref="MonoBehaviour"/> that binds the Core Shell, Input, and UI together.
+	/// </summary>
+	/// <remarks>
+	/// This GameObject is automatically marked as <c>DontDestroyOnLoad</c> and guarantees that the console 
+	/// survives across scene transitions.
+	/// </remarks>
 	[DisallowMultipleComponent]
 	public sealed class UShellManager : MonoBehaviour
 	{
@@ -22,12 +30,17 @@ namespace UShell.Runtime.Unity.Bootstrapping
 			_engine?.Dispose();
 		}
 
+		/// <summary>
+		/// Bootstraps the manager with the built dependencies and resolves proxy references.
+		/// </summary>
+		/// <param name="bootstrapResult">The configured data from the Bootstrapper.</param>
+		/// <exception cref="ArgumentNullException">Thrown if the result is null.</exception>
 		public void Initialize(BootstrapResult bootstrapResult)
 		{
 			if (bootstrapResult == null) throw new ArgumentNullException(nameof(bootstrapResult));
 			if (_isInitialized) return;
 
-			bootstrapResult.RegistryProxy.Target = bootstrapResult.Core.Registry;
+			((RegistryProxy)bootstrapResult.CommandRegistry).Target = bootstrapResult.Core.Registry;
 
 			ConsoleView view = GetConsoleView();
 			view.Initialize();

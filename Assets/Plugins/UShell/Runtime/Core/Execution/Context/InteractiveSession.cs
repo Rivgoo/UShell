@@ -7,23 +7,37 @@ using UShell.Runtime.Core.Output.Formatting;
 
 namespace UShell.Runtime.Core.Execution.Context
 {
+	/// <summary>
+	/// The default implementation of <see cref="IInteractiveSession"/> that handles 
+	/// timeout tokens and dispatches prompt visuals to a <see cref="IConsolePrinter"/>.
+	/// </summary>
 	public sealed class InteractiveSession : IInteractiveSession
 	{
+		/// <inheritdoc/>
 		public event Action<string> OnPromptRequested = delegate { };
+
+		/// <inheritdoc/>
 		public event Action OnStateChanged = delegate { };
 
 		private readonly IConsolePrinter _printer;
 		private CancellationTokenSource? _cancellationTokenSource;
 		private TaskCompletionSource<string>? _promptCompletionSource;
 
+		/// <inheritdoc/>
 		public bool IsBusy { get; private set; }
+
+		/// <inheritdoc/>
 		public bool IsWaitingForPrompt => _promptCompletionSource != null && !_promptCompletionSource.Task.IsCompleted;
 
+		/// <summary>
+		/// Initializes a new instance of the session binding it to a specific printer.
+		/// </summary>
 		public InteractiveSession(IConsolePrinter printer)
 		{
 			_printer = printer ?? throw new ArgumentNullException(nameof(printer));
 		}
 
+		/// <inheritdoc/>
 		public CancellationToken StartSession(TimeSpan timeout)
 		{
 			if (IsBusy)
@@ -38,6 +52,7 @@ namespace UShell.Runtime.Core.Execution.Context
 			return _cancellationTokenSource.Token;
 		}
 
+		/// <inheritdoc/>
 		public void EndSession()
 		{
 			if (!IsBusy) return;
@@ -52,17 +67,20 @@ namespace UShell.Runtime.Core.Execution.Context
 			NotifyStateChanged();
 		}
 
+		/// <inheritdoc/>
 		public void Cancel()
 		{
 			_cancellationTokenSource?.Cancel();
 			_promptCompletionSource?.TrySetCanceled();
 		}
 
+		/// <inheritdoc/>
 		public void SubmitInput(string input)
 		{
 			_promptCompletionSource?.TrySetResult(input ?? string.Empty);
 		}
 
+		/// <inheritdoc/>
 		public Task<string> RequestPromptAsync(string message)
 		{
 			if (_cancellationTokenSource == null)

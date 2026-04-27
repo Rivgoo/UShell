@@ -9,11 +9,20 @@ using UShell.Runtime.Core.Output.Formatting;
 
 namespace UShell.Runtime.Unity.BuiltIn
 {
+	/// <summary>
+	/// A built-in profile that provides commands for checking the current application and system environment.
+	/// </summary>
+	/// <remarks>
+	/// Registers commands such as <c>info</c>, <c>env</c>, and <c>platform</c>.
+	/// </remarks>
 	public sealed class EnvironmentInfoProfile : ShellProfile
 	{
 		private readonly string _gameVersion;
 		private readonly EnvironmentTag _environment;
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="EnvironmentInfoProfile"/> class.
+		/// </summary>
 		public EnvironmentInfoProfile(
 			IConsolePrinter printer,
 			string gameVersion,
@@ -24,6 +33,7 @@ namespace UShell.Runtime.Unity.BuiltIn
 			_environment = environment;
 		}
 
+		/// <inheritdoc/>
 		protected override void Configure(ICommandBuilder builder)
 		{
 			builder.WithName("info")

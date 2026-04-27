@@ -7,17 +7,29 @@ using UShell.Runtime.Core.Output.Formatting;
 
 namespace UShell.Runtime.Core.Output.Reporting
 {
+	/// <summary>
+	/// A decorator for <see cref="ICommandExecutor"/> that automatically intercepts 
+	/// execution results and logs them visually to an <see cref="IConsolePrinter"/>.
+	/// </summary>
+	/// <remarks>
+	/// This class ensures that returned values from commands are printed, and structured 
+	/// <see cref="ShellError"/> payloads are transformed into visual pointers using the <see cref="ErrorVisualizer"/>.
+	/// </remarks>
 	public sealed class ReportingCommandExecutor : ICommandExecutor
 	{
 		private readonly ICommandExecutor _inner;
 		private readonly IConsolePrinter _printer;
 
+		/// <summary>
+		/// Initializes a new instance wrapping an existing executor and printer.
+		/// </summary>
 		public ReportingCommandExecutor(ICommandExecutor inner, IConsolePrinter printer)
 		{
 			_inner = inner ?? throw new ArgumentNullException(nameof(inner));
 			_printer = printer ?? throw new ArgumentNullException(nameof(printer));
 		}
 
+		/// <inheritdoc/>
 		public ExecutionResult<object?> Execute(string input)
 		{
 			if (string.IsNullOrWhiteSpace(input))

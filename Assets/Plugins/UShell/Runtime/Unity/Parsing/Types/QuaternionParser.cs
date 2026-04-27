@@ -7,8 +7,15 @@ using UShell.Runtime.Core.Parsing.Types;
 
 namespace UShell.Runtime.Unity.Parsing.Types
 {
+	/// <summary>
+	/// Parses a <see cref="UnityEngine.Quaternion"/> from comma-separated Euler angles or raw 4-component coordinates.
+	/// </summary>
+	/// <remarks>
+	/// Supports <c>x,y,z</c> (interpreted as Euler angles) and <c>x,y,z,w</c> (interpreted as raw quaternion components).
+	/// </remarks>
 	public sealed class QuaternionParser : TypeParser<Quaternion>
 	{
+		/// <inheritdoc/>
 		public override ExecutionResult<Quaternion> ParseTyped(string input)
 		{
 			string[] parts = input.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);

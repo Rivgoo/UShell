@@ -7,8 +7,12 @@ using UShell.Runtime.Core.Parsing.Types;
 
 namespace UShell.Runtime.Unity.Parsing.Types
 {
+	/// <summary>
+	/// Parses a <see cref="UnityEngine.Vector4"/> from a comma or space-separated string.
+	/// </summary>
 	public sealed class Vector4Parser : TypeParser<Vector4>
 	{
+		/// <inheritdoc/>
 		public override ExecutionResult<Vector4> ParseTyped(string input)
 		{
 			string[] parts = input.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);

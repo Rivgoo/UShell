@@ -14,6 +14,13 @@ using UShell.Runtime.Unity.Parsing.Types;
 
 namespace UShell.Runtime.Unity.Bootstrapping
 {
+	/// <summary>
+	/// A pure C# wrapper around the core <see cref="ShellBuilder"/> tailored specifically for Unity integration.
+	/// </summary>
+	/// <remarks>
+	/// This bootstrapper automatically injects Unity-specific parsers (Vector3, GameObject, Color, etc.) 
+	/// and sets up the reporting decorator to catch unhandled exceptions.
+	/// </remarks>
 	public sealed class CoreShellBootstrapper
 	{
 		private readonly EnvironmentTag _environment;
@@ -21,6 +28,11 @@ namespace UShell.Runtime.Unity.Bootstrapping
 		private readonly RegistryProxy _registryProxy;
 		private readonly List<IShellConfigurator> _configurators = new();
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="CoreShellBootstrapper"/> class.
+		/// </summary>
+		/// <param name="environment">The active environment (e.g., Development, Release).</param>
+		/// <param name="mirrorLogsToUnityConsole">Whether logs should be forwarded to <see cref="UnityEngine.Debug"/>.</param>
 		public CoreShellBootstrapper(EnvironmentTag environment, bool mirrorLogsToUnityConsole = true)
 		{
 			_environment = environment;
@@ -28,24 +40,36 @@ namespace UShell.Runtime.Unity.Bootstrapping
 			_registryProxy = new RegistryProxy();
 		}
 
+		/// <summary>
+		/// Adds a static profile instance to the shell.
+		/// </summary>
 		public CoreShellBootstrapper AddProfile(IShellProfile profile)
 		{
 			if (profile == null) throw new ArgumentNullException(nameof(profile));
 			return AddConfigurator(new DelegateConfigurator((builder, _) => builder.AddProfile(profile)));
 		}
 
+		/// <summary>
+		/// Adds a factory delegate that resolves a profile instance using the provided context.
+		/// </summary>
 		public CoreShellBootstrapper AddProfile(Func<ShellBootstrapContext, IShellProfile> profileFactory)
 		{
 			if (profileFactory == null) throw new ArgumentNullException(nameof(profileFactory));
 			return AddConfigurator(new DelegateConfigurator((builder, context) => builder.AddProfile(profileFactory(context))));
 		}
 
+		/// <summary>
+		/// Registers a custom Unity type parser.
+		/// </summary>
 		public CoreShellBootstrapper AddTypeParser<T>(ITypeParser<T> parser)
 		{
 			if (parser == null) throw new ArgumentNullException(nameof(parser));
 			return AddConfigurator(new DelegateConfigurator((builder, _) => builder.AddTypeParser(parser)));
 		}
 
+		/// <summary>
+		/// Attaches a custom configurator that modifies the underlying <see cref="ShellBuilder"/>.
+		/// </summary>
 		public CoreShellBootstrapper AddConfigurator(IShellConfigurator configurator)
 		{
 			if (configurator == null) throw new ArgumentNullException(nameof(configurator));
@@ -53,6 +77,10 @@ namespace UShell.Runtime.Unity.Bootstrapping
 			return this;
 		}
 
+		/// <summary>
+		/// Executes the configuration chain, wiring up Unity parsers, decorators, and profiles.
+		/// </summary>
+		/// <returns>A structured container with the initialized shell core.</returns>
 		public BootstrapResult Build()
 		{
 			var interactiveSession = new InteractiveSession(_printer);

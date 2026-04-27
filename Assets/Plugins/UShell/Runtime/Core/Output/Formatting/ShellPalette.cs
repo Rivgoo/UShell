@@ -1,40 +1,20 @@
-﻿// ============================================================
-//  Centralised design-token colour palette for the UShell
-//  developer console.  All built-in and third-party profiles
-//  should reference these constants instead of hard-coding
-//  hex strings, guaranteeing visual consistency across every
-//  command's output.
-//
-//  Theme: dark / restrained.
-//    • Accent:   dark-orange family  (brand / prompt colour)
-//    • Semantic: green / yellow / red (success / warning / error)
-//    • Neutral:  white → near-black grey ramp (text hierarchy)
-//    • Syntax:   blue / purple / cyan (code, types, values)
-// ============================================================
-
-namespace UShell.Runtime.Core.Output.Formatting
+﻿namespace UShell.Runtime.Core.Output.Formatting
 {
 	/// <summary>
-	/// Design-token colour palette for UShell console output.
-	/// All values are Unity TMP / uGUI rich-text hex colour strings
-	/// (<c>#RRGGBB</c> or <c>#RRGGBBAA</c>).
-	///
+	/// Centralized design-token color palette for the UShell developer console.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// All built-in and custom profiles should reference these constants instead of hard-coding
+	/// hex strings, guaranteeing visual consistency across every command's output.
+	/// </para>
 	/// <para>
 	/// Usage — wrap any string with <see cref="RichText.Color"/>:
 	/// <code>
-	///   RichText.Color("my text", ShellPalette.Accent)
+	///   string coloredText = RichText.Color("my text", ShellPalette.Accent);
 	/// </code>
 	/// </para>
-	///
-	/// <para><b>Colour families</b></para>
-	/// <list type="table">
-	///   <item><term>Accent (orange)</term>   <description>Brand / prompt / headers</description></item>
-	///   <item><term>Semantic</term>           <description>Success (green) · Warning (yellow) · Error (red)</description></item>
-	///   <item><term>Neutral (grey ramp)</term><description>Full text hierarchy from brightest to dimmest</description></item>
-	///   <item><term>Syntax (blue family)</term><description>Commands, types, values, keywords</description></item>
-	///   <item><term>Decoration</term>         <description>Separators, borders, rulers</description></item>
-	/// </list>
-	/// </summary>
+	/// </remarks>
 	public static class ShellPalette
 	{
 		// ──────────────────────────────────────────────────────
@@ -92,8 +72,6 @@ namespace UShell.Runtime.Core.Output.Formatting
 
 		// ──────────────────────────────────────────────────────
 		//  NEUTRAL  ·  White → near-black grey ramp (10 steps)
-		//  Use progressively darker shades to express hierarchy:
-		//    Primary content → secondary → hints → decorations
 		// ──────────────────────────────────────────────────────
 
 		/// <summary>Pure bright white — maximum emphasis, selected item, critical value.</summary>
@@ -150,7 +128,7 @@ namespace UShell.Runtime.Core.Output.Formatting
 		// ──────────────────────────────────────────────────────
 
 		/// <summary>Section header line (e.g., <c>── help ─────</c>).</summary>
-		public const string HeaderRule = "#C96A1E";      // same as Accent
+		public const string HeaderRule = "#C96A1E";
 
 		/// <summary>Table header row text.</summary>
 		public const string TableHeader = "#A09080";
@@ -158,13 +136,13 @@ namespace UShell.Runtime.Core.Output.Formatting
 		/// <summary>Table separator line (<c>───┼───</c> style).</summary>
 		public const string TableSeparator = "#4A4040";
 
-		/// <summary>Table cell content — slightly brighter than TextTertiary for readability.</summary>
+		/// <summary>Table cell content.</summary>
 		public const string TableCell = "#B0A898";
 
 		/// <summary>Ruler / horizontal divider line.</summary>
 		public const string Ruler = "#3A3230";
 
-		/// <summary>Inline badge background label text (e.g., <c>[EDITOR]</c>, <c>[DEV]</c>).</summary>
+		/// <summary>Inline badge background label text for Editor.</summary>
 		public const string BadgeEditor = "#6A94C8";
 
 		/// <summary>Inline badge for Development environment tag.</summary>
@@ -183,7 +161,7 @@ namespace UShell.Runtime.Core.Output.Formatting
 		//  STAT / METRICS  ·  For runtime diagnostics output
 		// ──────────────────────────────────────────────────────
 
-		/// <summary>Good / healthy metric value (fps high, memory low).</summary>
+		/// <summary>Good / healthy metric value.</summary>
 		public const string StatGood = "#6AAB52";
 
 		/// <summary>Degraded / borderline metric value.</summary>
@@ -192,25 +170,23 @@ namespace UShell.Runtime.Core.Output.Formatting
 		/// <summary>Critical / failing metric value.</summary>
 		public const string StatCritical = "#E84040";
 
-		/// <summary>Neutral metric label (not evaluated for health).</summary>
+		/// <summary>Neutral metric label.</summary>
 		public const string StatLabel = "#8A8A9A";
 
-		/// <summary>Metric unit suffix (e.g., <c>ms</c>, <c>MB</c>, <c>fps</c>).</summary>
+		/// <summary>Metric unit suffix (e.g., <c>ms</c>, <c>MB</c>).</summary>
 		public const string StatUnit = "#6A6870";
 
 		// ──────────────────────────────────────────────────────
-		//  HELPERS  ·  Convenience factory methods
+		//  HELPERS
 		// ──────────────────────────────────────────────────────
 
 		/// <summary>
-		/// Selects the appropriate semantic colour for a float metric based on thresholds.
-		/// Returns <see cref="StatGood"/> when <paramref name="value"/> ≤ <paramref name="warnThreshold"/>,
-		/// <see cref="StatWarn"/> when ≤ <paramref name="critThreshold"/>, otherwise <see cref="StatCritical"/>.
+		/// Selects a semantic color for a float metric (lower is better, e.g., memory).
 		/// </summary>
 		/// <param name="value">The metric value to evaluate.</param>
 		/// <param name="warnThreshold">Upper bound of the "good" zone.</param>
 		/// <param name="critThreshold">Upper bound of the "warn" zone.</param>
-		/// <returns>A hex colour string.</returns>
+		/// <returns>A hex color string.</returns>
 		public static string MetricColor(float value, float warnThreshold, float critThreshold)
 		{
 			if (value <= warnThreshold) return StatGood;
@@ -219,9 +195,7 @@ namespace UShell.Runtime.Core.Output.Formatting
 		}
 
 		/// <summary>
-		/// Same as <see cref="MetricColor"/> but inverted — higher is better (e.g., FPS).
-		/// Returns <see cref="StatGood"/> when <paramref name="value"/> ≥ <paramref name="goodThreshold"/>,
-		/// <see cref="StatWarn"/> when ≥ <paramref name="warnThreshold"/>, otherwise <see cref="StatCritical"/>.
+		/// Selects a semantic color for a float metric (higher is better, e.g., FPS).
 		/// </summary>
 		public static string MetricColorInverted(float value, float goodThreshold, float warnThreshold)
 		{
@@ -231,7 +205,7 @@ namespace UShell.Runtime.Core.Output.Formatting
 		}
 
 		/// <summary>
-		/// Returns the badge colour for a given <see cref="UShell.Runtime.Core.Commands.EnvironmentTag"/> value.
+		/// Returns the badge color for a given <see cref="UShell.Runtime.Core.Commands.EnvironmentTag"/> value.
 		/// </summary>
 		public static string EnvironmentTagColor(string tagName)
 		{

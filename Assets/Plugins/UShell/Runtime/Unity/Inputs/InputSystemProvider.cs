@@ -5,13 +5,31 @@ using UnityEngine.InputSystem;
 
 namespace UShell.Runtime.Unity.Inputs
 {
+	/// <summary>
+	/// A <see cref="MonoBehaviour"/> implementation of <see cref="IInputProvider"/> utilizing 
+	/// Unity's New Input System package.
+	/// </summary>
+	/// <remarks>
+	/// Hardcodes the default bindings (Backquote to toggle, Enter to submit, Arrows for history).
+	/// </remarks>
 	public sealed class InputSystemProvider : MonoBehaviour, IInputProvider
 	{
+		/// <inheritdoc/>
 		public event Action? OnToggleConsole;
+
+		/// <inheritdoc/>
 		public event Action? OnSubmit;
+
+		/// <inheritdoc/>
 		public event Action? OnHistoryUp;
+
+		/// <inheritdoc/>
 		public event Action? OnHistoryDown;
+
+		/// <inheritdoc/>
 		public event Action? OnAutocomplete;
+
+		/// <inheritdoc/>
 		public event Action? OnEscape;
 
 		private InputAction? _toggleAction;
@@ -49,6 +67,7 @@ namespace UShell.Runtime.Unity.Inputs
 			}
 		}
 
+		/// <inheritdoc/>
 		public void SetUIInputActive(bool active)
 		{
 			if (active)

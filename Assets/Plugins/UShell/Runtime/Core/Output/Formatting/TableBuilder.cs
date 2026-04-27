@@ -5,8 +5,19 @@ using System.Text;
 
 namespace UShell.Runtime.Core.Output.Formatting
 {
+	/// <summary>
+	/// Provides utility methods for formatting 2D string arrays into aligned ASCII grid tables.
+	/// </summary>
 	public static class TableBuilder
 	{
+		/// <summary>
+		/// Calculates the necessary padding for each column based on visual text length, 
+		/// and generates a fully formatted ASCII table string.
+		/// </summary>
+		/// <param name="headers">A collection of column titles.</param>
+		/// <param name="rows">A collection of rows, where each row is a collection of column cell strings.</param>
+		/// <param name="style">Determines the visual density of the table's divider lines.</param>
+		/// <returns>A multiline string representing the generated table.</returns>
 		public static string BuildAsciiTable(IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<string>> rows, TableStyle style = TableStyle.Standard)
 		{
 			if (headers == null || headers.Count == 0)
@@ -25,7 +36,7 @@ namespace UShell.Runtime.Core.Output.Formatting
 				for (int i = 0; i < rows.Count; i++)
 				{
 					AppendRow(stringBuilder, rows[i], columnWidths, headers.Count);
-					
+
 					if (style == TableStyle.Grid && i < rows.Count - 1)
 					{
 						AppendSeparator(stringBuilder, columnWidths);
@@ -68,7 +79,7 @@ namespace UShell.Runtime.Core.Output.Formatting
 
 			int maxLength = 0;
 			string[] lines = cell.Split('\n');
-			
+
 			foreach (string line in lines)
 			{
 				int visualLength = RichTextStripper.Strip(line).Length;
@@ -92,7 +103,7 @@ namespace UShell.Runtime.Core.Output.Formatting
 			{
 				string cell = (i < row.Count && row[i] != null) ? row[i] : string.Empty;
 				cellLines[i] = cell.Split('\n');
-				
+
 				if (cellLines[i].Length > maxLinesInRow)
 				{
 					maxLinesInRow = cellLines[i].Length;

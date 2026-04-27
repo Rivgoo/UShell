@@ -10,10 +10,16 @@ using LogType = UShell.Runtime.Core.Output.LogType;
 
 namespace UShell.Runtime.Unity.UI.Components
 {
+	/// <summary>
+	/// Represents a single visual log entry rendered inside the console's scroll view.
+	/// </summary>
 	[RequireComponent(typeof(RectTransform))]
 	public sealed class UShellLogItem : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 	{
+		/// <summary>The semantic category assigned to this visual item.</summary>
 		public LogType CurrentLogType { get; private set; }
+
+		/// <summary>The optional unique identifier, used if this log needs to be updated dynamically.</summary>
 		public Guid? CurrentId { get; private set; }
 
 		[SerializeField] private Image _iconImage = null!;
@@ -47,12 +53,18 @@ namespace UShell.Runtime.Unity.UI.Components
 			}
 		}
 
+		/// <summary>
+		/// Configures the base typography logic for the text component.
+		/// </summary>
 		public void Initialize(UShellUIConfiguration configuration)
 		{
 			_textComponent.font = configuration.MainFont;
 			_textComponent.fontSize = configuration.LogFontSize;
 		}
 
+		/// <summary>
+		/// Updates the visuals (icons, colors, text content) based on the provided log payload.
+		/// </summary>
 		public void ApplyData(LogEntry log, UShellUIConfiguration configuration)
 		{
 			CurrentLogType = log.Type;
@@ -79,6 +91,7 @@ namespace UShell.Runtime.Unity.UI.Components
 			}
 		}
 
+		/// <inheritdoc/>
 		public void OnPointerEnter(PointerEventData eventData)
 		{
 			if (_copyButton != null)
@@ -88,6 +101,7 @@ namespace UShell.Runtime.Unity.UI.Components
 			}
 		}
 
+		/// <inheritdoc/>
 		public void OnPointerExit(PointerEventData eventData)
 		{
 			if (_copyButton != null)

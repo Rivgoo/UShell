@@ -7,12 +7,22 @@ using UShell.Runtime.Core.Output.Formatting;
 
 namespace UShell.Runtime.Unity.BuiltIn
 {
+	/// <summary>
+	/// A built-in profile that provides commands for mathematical evaluation and unit conversion.
+	/// </summary>
+	/// <remarks>
+	/// Registers commands such as <c>eval</c>, <c>random</c>, and <c>convert</c>.
+	/// </remarks>
 	public sealed class MathUtilityProfile : ShellProfile
 	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MathUtilityProfile"/> class.
+		/// </summary>
 		public MathUtilityProfile(IConsolePrinter printer) : base(printer)
 		{
 		}
 
+		/// <inheritdoc/>
 		protected override void Configure(ICommandBuilder builder)
 		{
 			builder.WithName("eval")

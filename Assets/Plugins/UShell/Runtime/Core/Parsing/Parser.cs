@@ -10,10 +10,18 @@ using UShell.Runtime.Core.Parsing.Syntax;
 
 namespace UShell.Runtime.Core.Parsing
 {
+	/// <summary>
+	/// The front-end compiler unit responsible for transforming raw shell text into an Abstract Syntax Tree (AST).
+	/// </summary>
 	public static class Parser
 	{
 		private const int MaxRecursionDepth = 20;
 
+		/// <summary>
+		/// Tokenizes and parses the provided string into an executable syntax tree.
+		/// </summary>
+		/// <param name="input">The raw text entered by the user.</param>
+		/// <returns>A successful result holding the root <see cref="SyntaxNode"/>, or a structured syntax error.</returns>
 		public static ExecutionResult<SyntaxNode> Parse(string input)
 		{
 			if (string.IsNullOrWhiteSpace(input))

@@ -5,9 +5,13 @@ using UShell.Runtime.Unity.UI.Configuration;
 
 namespace UShell.Editor.UI
 {
+	/// <summary>
+	/// Custom Unity Inspector layout for the <see cref="UShellUIConfiguration"/> asset.
+	/// </summary>
 	[CustomEditor(typeof(UShellUIConfiguration))]
 	public sealed class UShellUIConfigurationEditor : UnityEditor.Editor
 	{
+		/// <inheritdoc/>
 		public override void OnInspectorGUI()
 		{
 			serializedObject.Update();

@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace UShell.Runtime.Core.History
 {
+	/// <summary>
+	/// The default implementation of <see cref="ICommandHistory"/> maintaining a capped list of inputs.
+	/// </summary>
 	public sealed class CommandHistory : ICommandHistory
 	{
 		private readonly List<string> _entries;
@@ -10,15 +13,23 @@ namespace UShell.Runtime.Core.History
 		private int _navigationIndex = -1;
 		private string? _uncommittedInput;
 
+		/// <inheritdoc/>
 		public int MaxCapacity { get; }
+
+		/// <inheritdoc/>
 		public IReadOnlyList<string> Entries => _entries;
 
+		/// <summary>
+		/// Initializes a new instance with the specified maximum capacity.
+		/// </summary>
+		/// <param name="maxCapacity">The number of historical entries to preserve.</param>
 		public CommandHistory(int maxCapacity = 100)
 		{
 			MaxCapacity = maxCapacity > 0 ? maxCapacity : 1;
 			_entries = new List<string>(MaxCapacity);
 		}
 
+		/// <inheritdoc/>
 		public void Add(string command)
 		{
 			if (string.IsNullOrWhiteSpace(command)) return;
@@ -36,12 +47,14 @@ namespace UShell.Runtime.Core.History
 			}
 		}
 
+		/// <inheritdoc/>
 		public void Clear()
 		{
 			_entries.Clear();
 			ResetNavigation();
 		}
 
+		/// <inheritdoc/>
 		public string? GetPrevious(string currentUncommittedInput)
 		{
 			if (_entries.Count == 0) return null;
@@ -59,6 +72,7 @@ namespace UShell.Runtime.Core.History
 			return _entries[_navigationIndex];
 		}
 
+		/// <inheritdoc/>
 		public string? GetNext()
 		{
 			if (_entries.Count == 0 || _navigationIndex == -1) return null;
@@ -76,6 +90,7 @@ namespace UShell.Runtime.Core.History
 			return restoredInput;
 		}
 
+		/// <inheritdoc/>
 		public void ResetNavigation()
 		{
 			_navigationIndex = -1;

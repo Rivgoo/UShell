@@ -3,10 +3,23 @@ using System.Text;
 
 namespace UShell.Runtime.Core.Output.Formatting
 {
+	/// <summary>
+	/// A utility for parsing and removing Unity Rich Text tags from a string.
+	/// </summary>
+	/// <remarks>
+	/// Crucial for accurately calculating the visual length of strings when building ASCII tables 
+	/// or aligning text, as raw formatting tags (like <c>&lt;color=#FFF&gt;</c>) do not occupy visual space.
+	/// </remarks>
 	public static class RichTextStripper
 	{
 		private const int MaxTagNameLength = 16;
 
+		/// <summary>
+		/// Removes all supported rich text markup tags from the provided string, 
+		/// leaving only the printable characters. Respects <c>&lt;noparse&gt;</c> blocks.
+		/// </summary>
+		/// <param name="richText">The string containing formatting tags.</param>
+		/// <returns>A clean string with no formatting tags.</returns>
 		public static string Strip(string richText)
 		{
 			if (string.IsNullOrEmpty(richText))
@@ -83,6 +96,10 @@ namespace UShell.Runtime.Core.Output.Formatting
 
 			return result.Length == richText.Length ? richText : result;
 		}
+
+		/// <summary>
+		/// Extracts a substring of the raw visual text based on character indices, ignoring the underlying rich text tags.
+		/// </summary>
 		public static string ExtractRange(string richText, int startChar, int endChar)
 		{
 			if (string.IsNullOrEmpty(richText) || startChar >= endChar)

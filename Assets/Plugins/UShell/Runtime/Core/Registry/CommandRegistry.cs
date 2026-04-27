@@ -11,11 +11,22 @@ using UShell.Runtime.Core.Suggestions;
 
 namespace UShell.Runtime.Core.Registry
 {
+	/// <summary>
+	/// The core implementation of <see cref="ICommandRegistry"/> mapping string keys to command signatures.
+	/// </summary>
+	/// <remarks>
+	/// This class acts as the source of truth for the active environment. It provides highly-optimized 
+	/// fuzzy-matching lookups for generating suggestions.
+	/// </remarks>
 	public sealed class CommandRegistry : ICommandRegistry
 	{
 		private readonly Dictionary<string, CommandSignature> _commands = new(StringComparer.OrdinalIgnoreCase);
 		private readonly Dictionary<CommandSignature, string> _signatureCache = new();
 
+		/// <summary>
+		/// Initializes a new registry using a pre-validated collection of signatures.
+		/// </summary>
+		/// <param name="signatures">The collection of available commands.</param>
 		public CommandRegistry(IReadOnlyList<CommandSignature> signatures)
 		{
 			foreach (CommandSignature sig in signatures)
@@ -24,13 +35,16 @@ namespace UShell.Runtime.Core.Registry
 			}
 		}
 
+		/// <inheritdoc/>
 		public bool TryGetCommand(string name, out CommandSignature signature)
 		{
 			return _commands.TryGetValue(name, out signature!);
 		}
 
+		/// <inheritdoc/>
 		public IReadOnlyCollection<CommandSignature> GetAllCommands() => _commands.Values;
 
+		/// <inheritdoc/>
 		public string GetCompactSignature(CommandSignature signature)
 		{
 			if (!_signatureCache.TryGetValue(signature, out string compact))
@@ -68,6 +82,7 @@ namespace UShell.Runtime.Core.Registry
 			_commands[key] = sig;
 		}
 
+		/// <inheritdoc/>
 		public IReadOnlyList<CommandSuggestion> GetSuggestions(string input)
 		{
 			if (string.IsNullOrWhiteSpace(input)) return Array.Empty<CommandSuggestion>();

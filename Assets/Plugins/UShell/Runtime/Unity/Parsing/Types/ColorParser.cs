@@ -5,8 +5,15 @@ using UShell.Runtime.Core.Parsing.Types;
 
 namespace UShell.Runtime.Unity.Parsing.Types
 {
+	/// <summary>
+	/// Parses standard Unity <see cref="UnityEngine.Color"/> objects from hex codes or named color strings.
+	/// </summary>
+	/// <remarks>
+	/// Supports formatting like <c>#FF0000</c>, <c>FF0000</c>, or valid Unity color names like <c>red</c>, <c>white</c>.
+	/// </remarks>
 	public sealed class ColorParser : TypeParser<Color>
 	{
+		/// <inheritdoc/>
 		public override ExecutionResult<Color> ParseTyped(string input)
 		{
 			string colorString = input.StartsWith("#") ? input : $"#{input}";

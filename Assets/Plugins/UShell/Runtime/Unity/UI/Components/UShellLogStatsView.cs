@@ -3,12 +3,18 @@ using TMPro;
 
 namespace UShell.Runtime.Unity.UI.Components
 {
+	/// <summary>
+	/// Manages the UI bar that displays the count of info, warning, and error logs currently in the console.
+	/// </summary>
 	public sealed class UShellLogStatsView : MonoBehaviour
 	{
 		[SerializeField] private TextMeshProUGUI _infoText = null!;
 		[SerializeField] private TextMeshProUGUI _warningText = null!;
 		[SerializeField] private TextMeshProUGUI _errorText = null!;
 
+		/// <summary>
+		/// Updates the displayed numeric counters. Overflows to "999+" if the value is too high.
+		/// </summary>
 		public void UpdateStats(int infoCount, int warningCount, int errorCount)
 		{
 			_infoText.text = FormatCount(infoCount);

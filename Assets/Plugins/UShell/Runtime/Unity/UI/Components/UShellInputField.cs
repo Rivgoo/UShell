@@ -7,9 +7,15 @@ using UShell.Runtime.Unity.UI.Configuration;
 
 namespace UShell.Runtime.Unity.UI.Components
 {
+	/// <summary>
+	/// Manages the user text input area, applying configuration fonts and rendering autocomplete ghost text.
+	/// </summary>
 	public sealed class UShellInputField : MonoBehaviour
 	{
-		public event Action<string> OnInputChanged = delegate { };
+		/// <summary>
+		/// Fired when the text value changes due to user typing or internal updates.
+		/// </summary>
+		public event Action<string> OnInputChanged;
 
 		[SerializeField] private TMP_InputField _realInput = null!;
 		[SerializeField] private TextMeshProUGUI _ghostText = null!;
@@ -18,6 +24,9 @@ namespace UShell.Runtime.Unity.UI.Components
 		private UShellUIConfiguration _configuration = null!;
 		private string _currentSuggestion = string.Empty;
 
+		/// <summary>
+		/// Gets the raw text currently inside the input field.
+		/// </summary>
 		public string CurrentText => _realInput.text;
 
 		private void Awake()
@@ -26,6 +35,9 @@ namespace UShell.Runtime.Unity.UI.Components
 			_realInput.onValidateInput += ValidateInput;
 		}
 
+		/// <summary>
+		/// Configures the input field's typography and colors based on the global settings.
+		/// </summary>
 		public void Initialize(UShellUIConfiguration configuration)
 		{
 			_configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
@@ -47,6 +59,9 @@ namespace UShell.Runtime.Unity.UI.Components
 			ProcessPromptBlinking();
 		}
 
+		/// <summary>
+		/// Changes the interaction state and visual cue of the input field.
+		/// </summary>
 		public void SetMode(ConsoleInputMode mode)
 		{
 			if (mode == ConsoleInputMode.Locked)
@@ -67,12 +82,18 @@ namespace UShell.Runtime.Unity.UI.Components
 			}
 		}
 
+		/// <summary>
+		/// Overlays a faded suggestion text visually ahead of the user's current input.
+		/// </summary>
 		public void RenderAutocomplete(string suggestion)
 		{
 			_currentSuggestion = suggestion;
 			UpdateGhostTextDisplay();
 		}
 
+		/// <summary>
+		/// Silently clears the input field without triggering an update event.
+		/// </summary>
 		public void ClearInput()
 		{
 			_realInput.SetTextWithoutNotify(string.Empty);
@@ -80,6 +101,9 @@ namespace UShell.Runtime.Unity.UI.Components
 			UpdateGhostTextDisplay();
 		}
 
+		/// <summary>
+		/// Overwrites the input field with the specified text and moves the caret to the end.
+		/// </summary>
 		public void SetInputText(string text)
 		{
 			text = SanitizeInput(text);
@@ -90,18 +114,27 @@ namespace UShell.Runtime.Unity.UI.Components
 			UpdateGhostTextDisplay();
 		}
 
+		/// <summary>
+		/// Enables the input field game object and forces UI focus.
+		/// </summary>
 		public void ActivateFocus()
 		{
 			gameObject.SetActive(true);
 			StartCoroutine(ForceFocusRoutine());
 		}
 
+		/// <summary>
+		/// Removes UI focus and disables the game object.
+		/// </summary>
 		public void DeactivateFocus()
 		{
 			_realInput.DeactivateInputField();
 			gameObject.SetActive(false);
 		}
 
+		/// <summary>
+		/// Re-applies UI focus to the input field if it is currently active.
+		/// </summary>
 		public void Refocus()
 		{
 			if (!gameObject.activeInHierarchy || !_realInput.interactable)
