@@ -376,4 +376,7 @@ public interface IInputProvider
 ---
 
 ## 📄 License
-This project is provided "AS IS" without warranty of any kind. You are free to use, modify, and distribute it within your commercial and non-commercial Unity projects.
+This project is licensed under the **MIT License**.
+You are free to use, modify, and distribute this software in your personal or commercial projects without any restrictions. The intellectual property of the core architecture remains with the original author. If you build upon this, a credit link to this repository is appreciated but not mandatory.
+
+See the [LICENSE](LICENSE) file for more details.
