@@ -29,19 +29,27 @@ jobs:
           VERSION="${LATEST_TAG}.${COMMIT_COUNT}"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
+      - name: Generate Meta Files List
+        run: |
+          cd UShell
+          echo "Assets.meta" > metaList.txt
+          echo "Assets/Plugins.meta" >> metaList.txt
+          
+          find Assets/Plugins/UShell -name \*.meta >> metaList.txt
+
       - name: Build .unitypackage
         uses: pCYSl5EDgo/create-unitypackage@v1.2.3
         with:
           package-path: 'UShell-${{ env.VERSION }}.unitypackage'
           project-folder: 'UShell'
-          include-files: 'Assets/Plugins/UShell/**'
+          include-files: 'metaList.txt' # Передаємо згенерований текстовий файл
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.VERSION }}
           name: "UShell ${{ env.VERSION }}"
-          files: UShell-${{ env.VERSION }}.unitypackage
+          files: UShell/UShell-${{ env.VERSION }}.unitypackage
           generate_release_notes: true
           draft: false
           prerelease: false
