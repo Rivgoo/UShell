@@ -55,10 +55,30 @@ namespace UShell.Runtime.Core.Bootstrapping
 			_interactiveSession = interactiveSession ?? throw new ArgumentNullException(nameof(interactiveSession));
 			_history = new CommandHistory(historyCapacity);
 
+			RegisterPrimitiveParsers();
+		}
+
+		private void RegisterPrimitiveParsers()
+		{
 			_parserRegistry.Register(new IntParser());
 			_parserRegistry.Register(new FloatParser());
 			_parserRegistry.Register(new BoolParser());
 			_parserRegistry.Register(new StringParser());
+
+			_parserRegistry.Register(new DoubleParser());
+			_parserRegistry.Register(new DecimalParser());
+			_parserRegistry.Register(new LongParser());
+			_parserRegistry.Register(new ULongParser());
+			_parserRegistry.Register(new UIntParser());
+			_parserRegistry.Register(new ShortParser());
+			_parserRegistry.Register(new UShortParser());
+			_parserRegistry.Register(new ByteParser());
+			_parserRegistry.Register(new SByteParser());
+			_parserRegistry.Register(new CharParser());
+
+			_parserRegistry.Register(new GuidParser());
+			_parserRegistry.Register(new DateTimeParser());
+			_parserRegistry.Register(new TimeSpanParser());
 		}
 
 		/// <summary>

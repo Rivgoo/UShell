@@ -120,30 +120,22 @@ namespace UShell.Runtime.Core.Execution.Binding
 		{
 			if (node is VariableNode varNode)
 			{
-				if (!_session.TryGetValue(varNode.Name, out object? val))
-				{
-					return ExecutionResult<object?>.Failure(
-						ShellError.Create(ShellErrorCode.Execute_MacroOrSessionVariableNotFound, node.StartIndex, varNode.Name));
-				}
-
-				if (val != null && !targetType.IsAssignableFrom(val.GetType()))
-				{
-					try
-					{
-						val = Convert.ChangeType(val, targetType, System.Globalization.CultureInfo.InvariantCulture);
-					}
-					catch
-					{
-						return ExecutionResult<object?>.Failure(
-							ShellError.Create(ShellErrorCode.Bind_TypeMismatch, node.StartIndex, $"${varNode.Name}", targetType.Name));
-					}
-				}
-				return ExecutionResult<object?>.Success(val);
+				return ResolveVariableNode(varNode, targetType);
 			}
 
 			if (targetType.IsArray)
 			{
 				return ParseArrayNode(node, targetType, paramName);
+			}
+
+			if (targetType.IsGenericType && IsSupportedCollectionType(targetType.GetGenericTypeDefinition()))
+			{
+				return ParseCollectionNode(node, targetType, paramName);
+			}
+
+			if (targetType.IsEnum)
+			{
+				return ParseEnumNode(node, targetType, paramName);
 			}
 
 			string textValue = ExtractScalarValue(node, out bool isScalar);
@@ -169,6 +161,29 @@ namespace UShell.Runtime.Core.Execution.Binding
 			return result;
 		}
 
+		private ExecutionResult<object?> ResolveVariableNode(VariableNode varNode, Type targetType)
+		{
+			if (!_session.TryGetValue(varNode.Name, out object? val))
+			{
+				return ExecutionResult<object?>.Failure(
+					ShellError.Create(ShellErrorCode.Execute_MacroOrSessionVariableNotFound, varNode.StartIndex, varNode.Name));
+			}
+
+			if (val != null && !targetType.IsAssignableFrom(val.GetType()))
+			{
+				try
+				{
+					val = Convert.ChangeType(val, targetType, System.Globalization.CultureInfo.InvariantCulture);
+				}
+				catch
+				{
+					return ExecutionResult<object?>.Failure(
+						ShellError.Create(ShellErrorCode.Bind_TypeMismatch, varNode.StartIndex, $"${varNode.Name}", targetType.Name));
+				}
+			}
+			return ExecutionResult<object?>.Success(val);
+		}
+
 		private ExecutionResult<object?> ParseArrayNode(SyntaxNode node, Type targetType, string paramName)
 		{
 			if (node is not ArrayNode arrayNode)
@@ -179,7 +194,7 @@ namespace UShell.Runtime.Core.Execution.Binding
 
 			Type elementType = targetType.GetElementType()!;
 
-			if (elementType.IsArray)
+			if (elementType.IsArray || (elementType.IsGenericType && IsSupportedCollectionType(elementType.GetGenericTypeDefinition())))
 			{
 				return ExecutionResult<object?>.Failure(
 					ShellError.Create(ShellErrorCode.Bind_MultidimensionalArrayNotSupported, node.StartIndex));
@@ -205,6 +220,53 @@ namespace UShell.Runtime.Core.Execution.Binding
 			}
 
 			return ExecutionResult<object?>.Success(arrayInstance);
+		}
+
+		private ExecutionResult<object?> ParseCollectionNode(SyntaxNode node, Type targetCollectionType, string paramName)
+		{
+			Type elementType = targetCollectionType.GetGenericArguments()[0];
+			Type arrayType = elementType.MakeArrayType();
+
+			var arrayResult = ParseArrayNode(node, arrayType, paramName);
+			if (!arrayResult.IsSuccess) return arrayResult;
+
+			try
+			{
+				object collectionInstance = Activator.CreateInstance(targetCollectionType, arrayResult.Value)!;
+				return ExecutionResult<object?>.Success(collectionInstance);
+			}
+			catch
+			{
+				return ExecutionResult<object?>.Failure(
+					ShellError.Create(ShellErrorCode.Bind_TypeMismatch, node.StartIndex, "Array", targetCollectionType.Name));
+			}
+		}
+
+		private ExecutionResult<object?> ParseEnumNode(SyntaxNode node, Type targetType, string paramName)
+		{
+			string textValue = ExtractScalarValue(node, out bool isScalar);
+
+			if (!isScalar)
+			{
+				return ExecutionResult<object?>.Failure(
+					ShellError.Create(ShellErrorCode.Bind_ExpectedScalarGotArray, node.StartIndex, paramName));
+			}
+
+			if (Enum.TryParse(targetType, textValue, ignoreCase: true, out object? enumValue) && enumValue != null)
+			{
+				return ExecutionResult<object?>.Success(enumValue);
+			}
+
+			return ExecutionResult<object?>.Failure(
+				ShellError.Create(ShellErrorCode.Bind_TypeMismatch, node.StartIndex, textValue, targetType.Name));
+		}
+
+		private static bool IsSupportedCollectionType(Type genericTypeDef)
+		{
+			return genericTypeDef == typeof(List<>) ||
+				   genericTypeDef == typeof(Stack<>) ||
+				   genericTypeDef == typeof(Queue<>) ||
+				   genericTypeDef == typeof(HashSet<>);
 		}
 
 		private string ExtractScalarValue(SyntaxNode node, out bool isScalar)

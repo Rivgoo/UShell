@@ -89,7 +89,7 @@ namespace UShell.Runtime.Unity.Bootstrapping
 			
 			var context = new ShellBootstrapContext(_printer, _registryProxy, builder.History, interactiveSession, builder.SessionState, _environment, controller);
 
-			RegisterBuiltInDependencies(builder, context);
+			RegisterBuiltInDependencies(builder);
 
 			foreach (IShellConfigurator configurator in _configurators)
 			{
@@ -104,14 +104,19 @@ namespace UShell.Runtime.Unity.Bootstrapping
 			return new BootstrapResult(decoratedCore, _printer, _registryProxy, controller);
 		}
 
-		private static void RegisterBuiltInDependencies(ShellBuilder builder, ShellBootstrapContext context)
+		private static void RegisterBuiltInDependencies(ShellBuilder builder)
 		{
 			builder.AddTypeParser(new Vector2Parser());
 			builder.AddTypeParser(new Vector3Parser());
 			builder.AddTypeParser(new Vector4Parser());
+			builder.AddTypeParser(new Vector2IntParser());
+			builder.AddTypeParser(new Vector3IntParser());
 			builder.AddTypeParser(new QuaternionParser());
 			builder.AddTypeParser(new ColorParser());
+			builder.AddTypeParser(new RectParser());
+			builder.AddTypeParser(new BoundsParser());
 			builder.AddTypeParser(new GameObjectParser());
+			builder.AddTypeParser(new TransformParser());
 		}
 
 		private sealed class DelegateConfigurator : IShellConfigurator
