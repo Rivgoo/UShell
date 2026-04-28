@@ -17,10 +17,10 @@ namespace UShell.Runtime.Unity.BuiltIn
 		protected override void Configure(ICommandBuilder builder)
 		{
 			builder.WithName("app.quit")
-				.WithDescription("Quits the player application.")
+				.WithDescription("Quits the application.")
 				.WithAlias("quit")
 				.WithAlias("exit")
-				.Executes(Application.Quit);
+				.Executes(ExecuteQuit);
 
 			builder.WithName("screen.fullscreen")
 				.WithDescription("Gets or sets the fullscreen state of the application.")
@@ -48,6 +48,17 @@ namespace UShell.Runtime.Unity.BuiltIn
 				.WithDescription("Gets or sets the global flow of time (Time.timeScale).")
 				.AddOptionalParameter<float>("scale", -1f)
 				.Executes<float>(SetTimeScale);
+		}
+
+		private void ExecuteQuit()
+		{
+			PrintWarning("Termination requested...");
+
+#if UNITY_EDITOR
+			UnityEditor.EditorApplication.isPlaying = false;
+#else
+				Application.Quit();
+#endif
 		}
 
 		private void SetFullscreen(bool enabled)

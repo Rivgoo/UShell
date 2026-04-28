@@ -20,6 +20,12 @@ namespace UShell.Runtime.Unity.BuiltIn
 	public sealed class HttpProfile : ShellProfile
 	{
 		/// <summary>
+		/// The maximum number of characters to print to the console from an HTTP response.
+		/// Prevents TextMeshPro from crashing due to max-vertex mesh limits on huge HTML/JSON bodies.
+		/// </summary>
+		private const int MaxResponsePrintLength = 3500;
+
+		/// <summary>
 		/// Initializes a new instance of the <see cref="HttpProfile"/> class.
 		/// </summary>
 		public HttpProfile(IConsolePrinter printer) : base(printer) { }
@@ -63,7 +69,6 @@ namespace UShell.Runtime.Unity.BuiltIn
 		private async Task ExecutePostAsync(ICommandContext ctx, string url, string body)
 		{
 			using UnityWebRequest request = UnityWebRequest.PostWwwForm(url, body);
-			// Override to send raw text instead of form data
 			byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(body);
 			request.uploadHandler = new UploadHandlerRaw(bodyRaw);
 			request.SetRequestHeader("Content-Type", "text/plain");
@@ -81,7 +86,6 @@ namespace UShell.Runtime.Unity.BuiltIn
 		private async Task ExecuteDeleteAsync(ICommandContext ctx, string url)
 		{
 			using UnityWebRequest request = UnityWebRequest.Delete(url);
-			// Ensure we still get the response body back on a delete request
 			request.downloadHandler = new DownloadHandlerBuffer();
 			await SendWebRequestAsync(ctx, request, "DELETE", url);
 		}
@@ -94,12 +98,11 @@ namespace UShell.Runtime.Unity.BuiltIn
 			{
 				while (!operation.isDone)
 				{
-					ctx.Token.ThrowIfCancellationRequested(); // Cancel via Escape or timeout
-
-					// Use upload progress if uploading, otherwise download progress
+					ctx.Token.ThrowIfCancellationRequested();
+					
 					float currentProgress = request.uploadProgress > 0 ? request.uploadProgress : request.downloadProgress;
 					progress.Report(currentProgress, url);
-
+					
 					await Task.Yield();
 				}
 
@@ -107,24 +110,38 @@ namespace UShell.Runtime.Unity.BuiltIn
 				{
 					progress.Fail($"Error {request.responseCode}");
 					ctx.PrintError($"HTTP Response: {request.responseCode} - {request.error}");
-					if (!string.IsNullOrEmpty(request.downloadHandler?.text))
-					{
-						ctx.Print(request.downloadHandler.text);
-					}
+					
+					PrintSafeResponseBody(ctx, request.downloadHandler?.text);
 					return;
 				}
-			} // Disposing the progress bar automatically sets it to 100% / Success
+			} 
 
 			string statusColor = request.responseCode >= 200 && request.responseCode < 300 ? ShellPalette.Success : ShellPalette.Warning;
 			string statusBadge = RichText.Bold(RichText.Color($"[{request.responseCode}]", statusColor));
-
+			
 			ctx.PrintSuccess($"{statusBadge} HTTP {method} request to {url} completed.");
+			
+			PrintSafeResponseBody(ctx, request.downloadHandler?.text);
+		}
 
-			string responseText = request.downloadHandler?.text ?? string.Empty;
-			if (!string.IsNullOrWhiteSpace(responseText))
+		/// <summary>
+		/// Sanitizes, truncates, and wraps the raw network response to prevent TextMeshPro from 
+		/// crashing when parsing raw HTML/XML tags.
+		/// </summary>
+		private void PrintSafeResponseBody(ICommandContext ctx, string? rawResponse)
+		{
+			if (string.IsNullOrWhiteSpace(rawResponse)) return;
+
+			string safeText = rawResponse!;
+
+			if (safeText.Length > MaxResponsePrintLength)
 			{
-				ctx.Print(RichText.Color(responseText, ShellPalette.TextSecondary));
+				safeText = safeText.Substring(0, MaxResponsePrintLength) + "\n\n... [Response body truncated for console]";
 			}
+
+			string escapedText = $"<noparse>{safeText}</noparse>";
+			
+			ctx.Print(RichText.Color(escapedText, ShellPalette.TextSecondary));
 		}
 	}
 }
