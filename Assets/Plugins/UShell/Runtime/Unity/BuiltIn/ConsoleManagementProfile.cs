@@ -6,11 +6,11 @@ using System.Text;
 using UShell.Runtime.Core.Abstractions;
 using UShell.Runtime.Core.Commands;
 using UShell.Runtime.Core.Commands.Fluent;
-using UShell.Runtime.Core.Execution.Context;
 using UShell.Runtime.Core.History;
 using UShell.Runtime.Core.Output;
 using UShell.Runtime.Core.Output.Formatting;
 using UShell.Runtime.Core.Suggestions;
+using UShell.Runtime.Core.Execution.Context;
 
 namespace UShell.Runtime.Unity.BuiltIn
 {
@@ -22,19 +22,10 @@ namespace UShell.Runtime.Unity.BuiltIn
 	/// </remarks>
 	public sealed class ConsoleManagementProfile : ShellProfile
 	{
-		/// <summary>
-		/// Fired when the user executes the <c>clear</c> command, signaling the UI to purge the log history.
-		/// </summary>
-		public static event Action? OnClearRequested;
-
-		/// <summary>
-		/// Fired when the user executes the <c>close</c> command, signaling the UI to hide the console.
-		/// </summary>
-		public static event Action? OnCloseRequested;
-
 		private readonly ICommandRegistry _registry;
 		private readonly ICommandHistory _history;
 		private readonly ISessionState _sessionState;
+		private readonly IShellController _controller;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ConsoleManagementProfile"/> class.
@@ -43,12 +34,14 @@ namespace UShell.Runtime.Unity.BuiltIn
 			IConsolePrinter printer,
 			ICommandRegistry registry,
 			ICommandHistory history,
-			ISessionState sessionState)
+			ISessionState sessionState,
+			IShellController controller)
 			: base(printer)
 		{
 			_registry = registry ?? throw new ArgumentNullException(nameof(registry));
 			_history = history ?? throw new ArgumentNullException(nameof(history));
 			_sessionState = sessionState ?? throw new ArgumentNullException(nameof(sessionState));
+			_controller = controller ?? throw new ArgumentNullException(nameof(controller));
 		}
 
 		/// <inheritdoc/>
@@ -63,12 +56,12 @@ namespace UShell.Runtime.Unity.BuiltIn
 			builder.WithName("clear")
 				.WithDescription("Clears all log entries from the console output window.")
 				.WithAlias("cls")
-				.Executes(() => OnClearRequested?.Invoke());
+				.Executes(() => _controller.RequestClear());
 
 			builder.WithName("close")
 				.WithDescription("Hides (closes) the console window.")
 				.WithAlias("hide")
-				.Executes(() => OnCloseRequested?.Invoke());
+				.Executes(() => _controller.RequestClose());
 
 			builder.WithName("echo")
 				.WithDescription("Prints the given text to the console.")

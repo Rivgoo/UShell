@@ -35,6 +35,9 @@ namespace UShell.Runtime.Unity.UI.Components
 		private int _warningCount;
 		private int _errorCount;
 
+		/// <summary>Gets the current amount of visual log items rendered.</summary>
+		public int TotalLogsCount => _activeLogs.Count;
+
 		private void Awake()
 		{
 			_scrollRect = GetComponent<ScrollRect>();

@@ -2,6 +2,7 @@
 using UShell.Runtime.Core;
 using UShell.Runtime.Core.Abstractions;
 using UShell.Runtime.Core.Output;
+using UShell.Runtime.Core.Registry;
 
 namespace UShell.Runtime.Unity.Bootstrapping
 {
@@ -27,16 +28,23 @@ namespace UShell.Runtime.Unity.Bootstrapping
 		public ICommandRegistry CommandRegistry { get; }
 
 		/// <summary>
+		/// The controller executing structural lifecycle requests originating from profiles.
+		/// </summary>
+		public IShellController Controller { get; }
+
+		/// <summary>
 		/// Initializes a new instance of the <see cref="BootstrapResult"/> class.
 		/// </summary>
 		public BootstrapResult(
 			IShellCore core,
 			IConsolePrinter printer,
-			ICommandRegistry commandRegistry)
+			ICommandRegistry commandRegistry,
+			IShellController controller)
 		{
 			Core = core ?? throw new ArgumentNullException(nameof(core));
 			Printer = printer ?? throw new ArgumentNullException(nameof(printer));
 			CommandRegistry = commandRegistry ?? throw new ArgumentNullException(nameof(commandRegistry));
+			Controller = controller ?? throw new ArgumentNullException(nameof(controller));
 		}
 	}
 }

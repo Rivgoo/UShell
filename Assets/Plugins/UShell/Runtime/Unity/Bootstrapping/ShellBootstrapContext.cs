@@ -1,4 +1,5 @@
 ﻿using System;
+using UShell.Runtime.Core.Abstractions;
 using UShell.Runtime.Core.Commands;
 using UShell.Runtime.Core.Execution.Context;
 using UShell.Runtime.Core.History;
@@ -34,6 +35,9 @@ namespace UShell.Runtime.Unity.Bootstrapping
 		/// <summary>The declared runtime environment (e.g., Editor, Release).</summary>
 		public EnvironmentTag ActiveEnvironment { get; }
 
+		/// <summary>The controller handling programmatic lifecycle requests.</summary>
+		public IShellController Controller { get; }
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ShellBootstrapContext"/> class.
 		/// </summary>
@@ -43,7 +47,8 @@ namespace UShell.Runtime.Unity.Bootstrapping
 			ICommandHistory history,
 			IInteractiveSession interactiveSession,
 			ISessionState sessionState,
-			EnvironmentTag activeEnvironment)
+			EnvironmentTag activeEnvironment,
+			IShellController controller)
 		{
 			Printer = printer ?? throw new ArgumentNullException(nameof(printer));
 			RegistryProxy = registryProxy ?? throw new ArgumentNullException(nameof(registryProxy));
@@ -51,6 +56,7 @@ namespace UShell.Runtime.Unity.Bootstrapping
 			InteractiveSession = interactiveSession ?? throw new ArgumentNullException(nameof(interactiveSession));
 			SessionState = sessionState ?? throw new ArgumentNullException(nameof(sessionState));
 			ActiveEnvironment = activeEnvironment;
+			Controller = controller ?? throw new ArgumentNullException(nameof(controller));
 		}
 	}
 }

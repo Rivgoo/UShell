@@ -1,4 +1,6 @@
 ﻿#nullable enable
+using System;
+
 namespace UShell.Runtime.Core.Execution
 {
 	/// <summary>
@@ -10,6 +12,16 @@ namespace UShell.Runtime.Core.Execution
 	/// </remarks>
 	public interface ICommandExecutor
 	{
+		/// <summary>
+		/// Fired immediately before a raw command string begins the parsing and execution pipeline.
+		/// </summary>
+		event Action<string> OnExecuting;
+
+		/// <summary>
+		/// Fired immediately after a command has completed execution, yielding the final result.
+		/// </summary>
+		event Action<string, ExecutionResult<object?>> OnExecuted;
+
 		/// <summary>
 		/// Parses and executes the provided shell expression.
 		/// </summary>

@@ -85,7 +85,9 @@ namespace UShell.Runtime.Unity.Bootstrapping
 		{
 			var interactiveSession = new InteractiveSession(_printer);
 			var builder = new ShellBuilder(_printer, _environment, interactiveSession);
-			var context = new ShellBootstrapContext(_printer, _registryProxy, builder.History, interactiveSession, builder.SessionState, _environment);
+			var controller = new ShellController();
+			
+			var context = new ShellBootstrapContext(_printer, _registryProxy, builder.History, interactiveSession, builder.SessionState, _environment, controller);
 
 			RegisterBuiltInDependencies(builder, context);
 
@@ -99,7 +101,7 @@ namespace UShell.Runtime.Unity.Bootstrapping
 			var reportingExecutor = new ReportingCommandExecutor(core.Executor, _printer);
 			IShellCore decoratedCore = new ShellCore(reportingExecutor, core.Registry, core.History, core.InteractiveSession, core.SessionState);
 
-			return new BootstrapResult(decoratedCore, _printer, _registryProxy);
+			return new BootstrapResult(decoratedCore, _printer, _registryProxy, controller);
 		}
 
 		private static void RegisterBuiltInDependencies(ShellBuilder builder, ShellBootstrapContext context)

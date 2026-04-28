@@ -18,10 +18,17 @@ namespace UShell.Runtime.Unity.UI
 	[DisallowMultipleComponent]
 	public sealed class ConsoleView : MonoBehaviour, IDisposable
 	{
-		/// <summary>
-		/// Fired whenever the text in the input field changes.
-		/// </summary>
+		/// <summary>Fired whenever the text in the input field changes.</summary>
 		public event Action<string> OnInputChanged = delegate { };
+
+		/// <summary>Fired when the console UI is requested to be displayed.</summary>
+		public event Action OnShow = delegate { };
+
+		/// <summary>Fired when the console UI is requested to be hidden.</summary>
+		public event Action OnHide = delegate { };
+
+		/// <summary>Fired when the visual log buffer has been cleared.</summary>
+		public event Action OnCleared = delegate { };
 
 		[SerializeField] private UShellUIConfiguration _configuration = null!;
 
@@ -33,15 +40,14 @@ namespace UShell.Runtime.Unity.UI
 
 		private IReadOnlyList<CommandSuggestion> _currentSuggestions = Array.Empty<CommandSuggestion>();
 
-		/// <summary>
-		/// Returns true if the console is currently open and visible to the user.
-		/// </summary>
+		/// <summary>Returns true if the console is currently open and visible to the user.</summary>
 		public bool IsVisible => _canvas.enabled;
 
-		/// <summary>
-		/// Gets the raw text currently typed into the input field.
-		/// </summary>
+		/// <summary>Gets the raw text currently typed into the input field.</summary>
 		public string CurrentInput => _inputField.CurrentText;
+
+		/// <summary>Gets the amount of log items currently rendered on the screen.</summary>
+		public int TotalLogsCount => _scrollView.TotalLogsCount;
 
 		/// <summary>
 		/// Validates dependencies, applies the visual configuration, and prepares the UI for interaction.
@@ -78,6 +84,7 @@ namespace UShell.Runtime.Unity.UI
 		{
 			_canvas.enabled = true;
 			_inputField.ActivateFocus();
+			OnShow.Invoke();
 		}
 
 		/// <summary>
@@ -87,6 +94,7 @@ namespace UShell.Runtime.Unity.UI
 		{
 			_canvas.enabled = false;
 			_inputField.DeactivateFocus();
+			OnHide.Invoke();
 		}
 
 		/// <summary>
@@ -127,6 +135,7 @@ namespace UShell.Runtime.Unity.UI
 		public void ClearLogs()
 		{
 			_scrollView.Clear();
+			OnCleared.Invoke();
 		}
 
 		/// <summary>

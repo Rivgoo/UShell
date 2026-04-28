@@ -17,6 +17,20 @@ namespace UShell.Runtime.Core.Output.Reporting
 	/// </remarks>
 	public sealed class ReportingCommandExecutor : ICommandExecutor
 	{
+		/// <inheritdoc/>
+		public event Action<string> OnExecuting
+		{
+			add => _inner.OnExecuting += value;
+			remove => _inner.OnExecuting -= value;
+		}
+
+		/// <inheritdoc/>
+		public event Action<string, ExecutionResult<object?>> OnExecuted
+		{
+			add => _inner.OnExecuted += value;
+			remove => _inner.OnExecuted -= value;
+		}
+
 		private readonly ICommandExecutor _inner;
 		private readonly IConsolePrinter _printer;
 

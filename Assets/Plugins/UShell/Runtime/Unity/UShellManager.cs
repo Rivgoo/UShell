@@ -2,6 +2,7 @@
 using System;
 using UnityEngine;
 using UShell.Runtime.Core.Registry;
+using UShell.Runtime.Unity.API;
 using UShell.Runtime.Unity.Inputs;
 using UShell.Runtime.Unity.UI;
 
@@ -17,6 +18,12 @@ namespace UShell.Runtime.Unity.Bootstrapping
 	[DisallowMultipleComponent]
 	public sealed class UShellManager : MonoBehaviour
 	{
+		/// <summary>
+		/// A globally accessible entry point to hook into the console's state and lifecycle events.
+		/// Guaranteed to be not null once the manager completes bootstrapping.
+		/// </summary>
+		public static IUShellAPI? API { get; private set; }
+
 		private ConsoleRuntimeEngine? _engine;
 		private bool _isInitialized;
 
@@ -47,7 +54,18 @@ namespace UShell.Runtime.Unity.Bootstrapping
 
 			IInputProvider inputProvider = GetInputProvider();
 
-			_engine = new ConsoleRuntimeEngine(bootstrapResult.Core, view, inputProvider, bootstrapResult.Printer);
+			_engine = new ConsoleRuntimeEngine(
+				bootstrapResult.Core, 
+				view, 
+				inputProvider, 
+				bootstrapResult.Printer, 
+				bootstrapResult.Controller);
+
+			API = new UShellFacade(
+				bootstrapResult.Core, 
+				view, 
+				bootstrapResult.Printer, 
+				bootstrapResult.Controller);
 
 			_isInitialized = true;
 		}

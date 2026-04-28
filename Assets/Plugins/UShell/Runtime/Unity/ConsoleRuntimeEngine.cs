@@ -2,10 +2,10 @@
 using System;
 using System.Collections.Generic;
 using UShell.Runtime.Core;
+using UShell.Runtime.Core.Abstractions;
 using UShell.Runtime.Core.Commands;
 using UShell.Runtime.Core.Output;
 using UShell.Runtime.Core.Output.Formatting;
-using UShell.Runtime.Unity.BuiltIn;
 using UShell.Runtime.Unity.Inputs;
 using UShell.Runtime.Unity.UI;
 
@@ -24,17 +24,20 @@ namespace UShell.Runtime.Unity
 		private readonly ConsoleView _view;
 		private readonly IInputProvider _input;
 		private readonly IConsolePrinter _printer;
+		private readonly IShellController _controller;
 
 		public ConsoleRuntimeEngine(
 			IShellCore core,
 			ConsoleView view,
 			IInputProvider input,
-			IConsolePrinter printer)
+			IConsolePrinter printer,
+			IShellController controller)
 		{
 			_core = core ?? throw new ArgumentNullException(nameof(core));
 			_view = view ?? throw new ArgumentNullException(nameof(view));
 			_input = input ?? throw new ArgumentNullException(nameof(input));
 			_printer = printer ?? throw new ArgumentNullException(nameof(printer));
+			_controller = controller ?? throw new ArgumentNullException(nameof(controller));
 
 			BindEvents();
 		}
@@ -60,8 +63,8 @@ namespace UShell.Runtime.Unity
 
 			_core.InteractiveSession.OnStateChanged += UpdateInputState;
 
-			ConsoleManagementProfile.OnClearRequested += _view.ClearLogs;
-			ConsoleManagementProfile.OnCloseRequested += CloseConsole;
+			_controller.OnClearRequested += _view.ClearLogs;
+			_controller.OnCloseRequested += CloseConsole;
 		}
 
 		private void UnbindEvents()
@@ -80,8 +83,8 @@ namespace UShell.Runtime.Unity
 
 			_core.InteractiveSession.OnStateChanged -= UpdateInputState;
 
-			ConsoleManagementProfile.OnClearRequested -= _view.ClearLogs;
-			ConsoleManagementProfile.OnCloseRequested -= CloseConsole;
+			_controller.OnClearRequested -= _view.ClearLogs;
+			_controller.OnCloseRequested -= CloseConsole;
 
 			_view.Dispose();
 		}

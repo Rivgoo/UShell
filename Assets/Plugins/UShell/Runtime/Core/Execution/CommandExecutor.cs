@@ -16,6 +16,9 @@ namespace UShell.Runtime.Core.Execution
 {
 	public sealed class CommandExecutor : ICommandExecutor
 	{
+		public event Action<string> OnExecuting = delegate { };
+		public event Action<string, ExecutionResult<object?>> OnExecuted = delegate { };
+
 		private readonly ICommandRegistry _registry;
 		private readonly IArgumentBinder _binder;
 		private readonly IInteractiveSession _session;
@@ -38,7 +41,10 @@ namespace UShell.Runtime.Core.Execution
 
 		public ExecutionResult<object?> Execute(string input)
 		{
-			return ExecuteInternal(input, 0);
+			OnExecuting.Invoke(input);
+			ExecutionResult<object?> result = ExecuteInternal(input, 0);
+			OnExecuted.Invoke(input, result);
+			return result;
 		}
 
 		private ExecutionResult<object?> ExecuteInternal(string input, int depth)
