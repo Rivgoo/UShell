@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using System;
+using UShell.Runtime.Core.Configuration;
 using UShell.Runtime.Core.Execution;
 using UShell.Runtime.Core.Output;
 
@@ -59,5 +60,9 @@ namespace UShell.Runtime.Unity.API
 		/// <summary>Programmatically forces the shell to execute a string as if the user typed it.</summary>
 		/// <param name="rawCommand">The full command syntax string (e.g., "spawn -count 5").</param>
 		void ExecuteCommand(string rawCommand);
+
+		/// <summary>Initiates a transaction to safely add or remove profiles and parsers at runtime.</summary>
+		/// <returns>An <see cref="IConfigurationTransaction"/> object.</returns>
+		IConfigurationTransaction BeginConfiguration();
 	}
 }

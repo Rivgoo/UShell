@@ -6,7 +6,6 @@ using UShell.Runtime.Core.Abstractions;
 using UShell.Runtime.Core.Bootstrapping;
 using UShell.Runtime.Core.Commands;
 using UShell.Runtime.Core.Execution.Context;
-using UShell.Runtime.Core.Output.Reporting;
 using UShell.Runtime.Core.Parsing.Types;
 using UShell.Runtime.Core.Registry;
 using UShell.Runtime.Unity.Output;
@@ -84,9 +83,9 @@ namespace UShell.Runtime.Unity.Bootstrapping
 		public BootstrapResult Build()
 		{
 			var interactiveSession = new InteractiveSession(_printer);
-			var builder = new ShellBuilder(_printer, _environment, interactiveSession);
 			var controller = new ShellController();
-			
+
+			var builder = new ShellBuilder(_printer, _environment, interactiveSession, controller);
 			var context = new ShellBootstrapContext(_printer, _registryProxy, builder.History, interactiveSession, builder.SessionState, _environment, controller);
 
 			RegisterBuiltInDependencies(builder);
@@ -98,10 +97,7 @@ namespace UShell.Runtime.Unity.Bootstrapping
 
 			IShellCore core = builder.Build();
 
-			var reportingExecutor = new ReportingCommandExecutor(core.Executor, _printer);
-			IShellCore decoratedCore = new ShellCore(reportingExecutor, core.Registry, core.History, core.InteractiveSession, core.SessionState);
-
-			return new BootstrapResult(decoratedCore, _printer, _registryProxy, controller);
+			return new BootstrapResult(core, _printer, _registryProxy, controller);
 		}
 
 		private static void RegisterBuiltInDependencies(ShellBuilder builder)

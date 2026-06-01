@@ -1,4 +1,5 @@
 ﻿using UShell.Runtime.Core.Abstractions;
+using UShell.Runtime.Core.Configuration;
 using UShell.Runtime.Core.Execution;
 using UShell.Runtime.Core.Execution.Context;
 using UShell.Runtime.Core.History;
@@ -38,5 +39,11 @@ namespace UShell.Runtime.Core
 		/// The memory container for stored variables and macros.
 		/// </summary>
 		ISessionState SessionState { get; }
+
+		/// <summary>
+		/// Initiates a configuration transaction, allowing safe addition or removal of profiles and type parsers at runtime.
+		/// </summary>
+		/// <returns>A transaction object used to chain configuration changes.</returns>
+		IConfigurationTransaction BeginConfigurationTransaction();
 	}
 }

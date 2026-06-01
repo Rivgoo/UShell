@@ -24,5 +24,12 @@ namespace UShell.Runtime.Core.Parsing.Types
 		/// Thrown if a parser for the type already exists and <paramref name="forceOverride"/> is false.
 		/// </exception>
 		void Register(ITypeParser parser, bool forceOverride = false);
+
+		/// <summary>
+		/// Attempts to remove an existing parser for the specified type.
+		/// </summary>
+		/// <param name="targetType">The target type to unregister.</param>
+		/// <returns><c>true</c> if the parser was found and removed; otherwise, <c>false</c>.</returns>
+		bool TryRemoveParser(Type targetType);
 	}
 }

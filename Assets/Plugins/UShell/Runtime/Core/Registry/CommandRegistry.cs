@@ -16,23 +16,19 @@ namespace UShell.Runtime.Core.Registry
 	/// </summary>
 	/// <remarks>
 	/// This class acts as the source of truth for the active environment. It provides highly-optimized 
-	/// fuzzy-matching lookups for generating suggestions.
+	/// fuzzy-matching lookups for generating suggestions. Supports dynamic runtime registration.
 	/// </remarks>
 	public sealed class CommandRegistry : ICommandRegistry
 	{
 		private readonly Dictionary<string, CommandSignature> _commands = new(StringComparer.OrdinalIgnoreCase);
 		private readonly Dictionary<CommandSignature, string> _signatureCache = new();
+		private readonly Dictionary<IShellProfile, List<CommandSignature>> _profileSignatures = new();
 
 		/// <summary>
-		/// Initializes a new registry using a pre-validated collection of signatures.
+		/// Initializes a new empty command registry.
 		/// </summary>
-		/// <param name="signatures">The collection of available commands.</param>
-		public CommandRegistry(IReadOnlyList<CommandSignature> signatures)
+		public CommandRegistry()
 		{
-			foreach (CommandSignature sig in signatures)
-			{
-				RegisterSignature(sig);
-			}
 		}
 
 		/// <inheritdoc/>
@@ -55,31 +51,85 @@ namespace UShell.Runtime.Core.Registry
 			return compact;
 		}
 
-		internal void MergeSignatures(IReadOnlyList<CommandSignature> signatures)
+		/// <summary>
+		/// Dynamically registers a profile and maps its commands into the active registry.
+		/// </summary>
+		/// <param name="profile">The profile instance defining the commands.</param>
+		/// <param name="signatures">The compiled signatures for this profile.</param>
+		/// <exception cref="DuplicateCommandException">Thrown if any command name or alias already exists in the registry.</exception>
+		public void RegisterProfile(IShellProfile profile, IReadOnlyList<CommandSignature> signatures)
 		{
+			if (profile == null) throw new ArgumentNullException(nameof(profile));
+			if (signatures == null) throw new ArgumentNullException(nameof(signatures));
+
+			if (_profileSignatures.ContainsKey(profile)) return;
+
 			foreach (CommandSignature sig in signatures)
 			{
-				RegisterSignature(sig);
+				if (_commands.ContainsKey(sig.Name)) throw new DuplicateCommandException(sig.Name);
+
+				foreach (string alias in sig.Aliases)
+				{
+					if (_commands.ContainsKey(alias)) throw new DuplicateCommandException(alias);
+				}
 			}
+
+			_profileSignatures[profile] = new List<CommandSignature>(signatures);
+
+			foreach (CommandSignature sig in signatures)
+			{
+				_commands[sig.Name] = sig;
+				foreach (string alias in sig.Aliases)
+				{
+					_commands[alias] = sig;
+				}
+			}
+
+			_signatureCache.Clear();
 		}
 
-		private void RegisterSignature(CommandSignature sig)
+		/// <summary>
+		/// Removes a profile and all of its associated commands and aliases from the registry.
+		/// </summary>
+		/// <param name="profile">The profile to remove.</param>
+		/// <returns><c>true</c> if the profile was found and removed; otherwise, <c>false</c>.</returns>
+		public bool UnregisterProfile(IShellProfile profile)
 		{
-			RegisterKey(sig.Name, sig);
+			if (profile == null) throw new ArgumentNullException(nameof(profile));
 
-			foreach (string alias in sig.Aliases)
+			if (!_profileSignatures.TryGetValue(profile, out List<CommandSignature>? signatures))
 			{
-				RegisterKey(alias, sig);
+				return false;
 			}
+
+			foreach (CommandSignature sig in signatures)
+			{
+				_commands.Remove(sig.Name);
+				foreach (string alias in sig.Aliases)
+				{
+					_commands.Remove(alias);
+				}
+			}
+
+			_profileSignatures.Remove(profile);
+			_signatureCache.Clear();
+			return true;
 		}
 
-		private void RegisterKey(string key, CommandSignature sig)
+		/// <summary>
+		/// Retrieves all tracked profile instances matching the specified type.
+		/// </summary>
+		public IReadOnlyList<IShellProfile> GetProfilesByType(Type type)
 		{
-			if (_commands.ContainsKey(key))
+			var list = new List<IShellProfile>();
+			foreach (IShellProfile profile in _profileSignatures.Keys)
 			{
-				throw new DuplicateCommandException(key);
+				if (type.IsAssignableFrom(profile.GetType()))
+				{
+					list.Add(profile);
+				}
 			}
-			_commands[key] = sig;
+			return list;
 		}
 
 		/// <inheritdoc/>

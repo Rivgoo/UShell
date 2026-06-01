@@ -29,6 +29,11 @@
   - [Option A: Component-Based Setup (Drag \& Drop)](#option-a-component-based-setup-drag--drop)
   - [Option B: Modular Injection (`IShellConfigurator`)](#option-b-modular-injection-ishellconfigurator)
   - [Option C: Pure Code Setup (Zenject / VContainer)](#option-c-pure-code-setup-zenject--vcontainer)
+- [🔄 Dynamic Runtime Reconfiguration](#-dynamic-runtime-reconfiguration)
+  - [The Configuration Transaction Pattern](#the-configuration-transaction-pattern)
+  - [Concurrency \& Execution Safety Guarantees](#concurrency--execution-safety-guarantees)
+  - [Transactional Fluent API Reference](#transactional-fluent-api-reference)
+  - [Complete Reconfiguration Example](#complete-reconfiguration-example)
 - [🛠️ Profiles \& the Fluent API](#️-profiles--the-fluent-api)
   - [Creating a Profile](#creating-a-profile)
   - [`ICommandBuilder`](#icommandbuilder)
@@ -62,7 +67,12 @@
   - [`UShellUIConfiguration` ScriptableObject](#ushelluiconfiguration-scriptableobject)
   - [Custom Input Provider (`IInputProvider`)](#custom-input-provider-iinputprovider)
 - [🔌 Programmatic API (`IUShellAPI`)](#-programmatic-api-iushellapi)
+  - [Quick Examples](#quick-examples)
   - [`IUShellAPI` Reference](#iushellapi-reference)
+    - [Properties](#properties)
+    - [Events](#events)
+    - [Methods](#methods)
+- [| `BeginConfiguration()` | `IConfigurationTransaction` | Spawns a fluent, transactional Unit of Work to dynamically add/remove profiles and type parsers in-place during runtime. |](#-beginconfiguration--iconfigurationtransaction--spawns-a-fluent-transactional-unit-of-work-to-dynamically-addremove-profiles-and-type-parsers-in-place-during-runtime-)
 - [📚 Built-In Profiles Reference](#-built-in-profiles-reference)
   - [`ConsoleManagementProfile`](#consolemanagementprofile)
   - [`EnvironmentInfoProfile`](#environmentinfoprofile)
@@ -245,6 +255,151 @@ public class TerminalInstaller : MonoInstaller
 | `Build()` | Wires all dependencies and returns a `BootstrapResult`. |
 
 > **⚠️ ARCHITECTURE RULE:** Type parsers must be registered **before** profiles that use them. Registration order matters: parsers first, then profiles.
+
+---
+
+## 🔄 Dynamic Runtime Reconfiguration
+
+UShell supports dynamic runtime modification of the console configuration. Rather than completely tearing down and rebuilding the shell core (which would wipe command history, active session variables, and UI log layouts), UShell utilizes **Configuration Transactions** to mutate the command and parser registries *in-place*.
+
+```
+ [User API Request] 
+         │
+         ▼
+ 1. Stage Changes (IConfigurationTransaction)
+         │
+         ▼
+ 2. Concurrency Safety: Wait for all running commands to finish
+         │
+         ▼
+ 3. Lock System & Close UI (StartSession Lock)
+         │
+         ▼
+ 4. Perform In-Place Mutations (Command/Parser Registries Updated)
+         │
+         ▼
+ 5. Unlock System & Complete Transaction
+```
+
+This ensures full system stability while allowing you to inject or revoke developer tools as the game context changes (e.g., loading DLCs, entering specific gameplay zones, or changing network states).
+
+### The Configuration Transaction Pattern
+
+Dynamic reconfigurations are structured as transactions using the **Unit of Work** pattern. This guarantees that all changes are pre-validated and applied atomically. If any command name or alias collision occurs during staging, the transaction throws an exception and rolls back without corrupting the active console state.
+
+```csharp
+// 1. Begin the configuration transaction
+IConfigurationTransaction transaction = UShellManager.API.BeginConfiguration();
+
+// 2. Stage multiple operations fluently
+transaction
+    .AddProfile(new DungeonCheatProfile(UShellManager.API))
+    .AddTypeParser(new EnemyTargetParser())
+    .RemoveProfile<MainMenuProfile>(); // Remove existing profile by its compile-time Type
+
+// 3. Apply the changes atomically
+await transaction.ApplyAsync();
+```
+
+---
+
+### Concurrency & Execution Safety Guarantees
+
+Mutating command dictionaries while the user is executing a command would result in severe runtime exceptions. UShell prevents this using a multi-step safety routine:
+
+1. **Spin-Lock on Active Commands:** Calling `ApplyAsync` executes a non-blocking spin-lock that checks `IInteractiveSession.IsBusy`. It yields execution back to the engine until all currently running asynchronous, interactive, or multi-step commands are fully completed.
+2. **System Lock and UI Hiding:** Once active tasks finish, the transaction calls `IShellController.RequestClose()` to hide the console UI. It then calls `IInteractiveSession.StartSession()` to acquire an exclusive system-level lock. This blocks any new command execution and prevents the user from typing.
+3. **In-Place Mutation:** The staged additions and removals are processed synchronously within the registers.
+4. **Unlocking:** The transaction releases the interactive session lock, returning the console to its standard operating mode.
+
+---
+
+### Transactional Fluent API Reference
+
+The `IConfigurationTransaction` interface provides the following chainable methods:
+
+| Method | Description |
+|---|---|
+| `AddProfile(IShellProfile profile)` | Stages a profile instance to be added to the console. |
+| `AddTypeParser<T>(ITypeParser<T> parser)` | Stages a custom type parser to be registered. |
+| `RemoveProfile<TProfile>()` | Stages all active profiles of the specified type `TProfile` to be removed. |
+| `RemoveProfile(Type profileType)` | Stages all active profiles of the specified `Type` to be removed. |
+| `RemoveProfile(IShellProfile profile)` | Stages a specific, exact profile instance to be removed. |
+| `RemoveTypeParser<TTarget>()` | Stages the parser mapped to type `TTarget` to be unregistered. |
+| `RemoveTypeParser(Type targetType)` | Stages the parser mapped to `targetType` to be unregistered. |
+| `ApplyAsync(CancellationToken token)` | Executes the safety checks, locks the shell, applies all staged mutations, and unlocks. |
+
+---
+
+### Complete Reconfiguration Example
+
+Here is a practical Unity controller managing state transitions when a player enters a specific game zone:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using UnityEngine;
+using UShell.Runtime.Unity.API;
+using UShell.Runtime.Core.Configuration;
+
+public class ZoneManager : MonoBehaviour
+{
+    private IShellProfile? _activeZoneProfile;
+
+    // Called when the player enters a dungeon area
+    public async void OnPlayerEnteredDungeon()
+    {
+        Debug.Log("Loading Dungeon Cheat System...");
+        
+        _activeZoneProfile = new DungeonCheatProfile(UShellManager.API);
+
+        try
+        {
+            // Begin transactional update
+            IConfigurationTransaction transaction = UShellManager.API.BeginConfiguration();
+
+            transaction
+                .AddProfile(_activeZoneProfile)
+                .AddTypeParser(new EnemyConfigParser())
+                .RemoveProfile<MainMenuProfile>(); // Safely remove using generic Type argument
+
+            // Waits for running commands, closes UI, locks the terminal, mutates, and unlocks
+            await transaction.ApplyAsync();
+            
+            Debug.Log("Console updated successfully for Dungeon mode.");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Failed to reconfigure console: {ex.Message}");
+        }
+    }
+
+    // Called when the player exits the dungeon back to main menu
+    public async void OnPlayerExitedDungeon()
+    {
+        Debug.Log("Restoring Main Menu Console System...");
+
+        if (_activeZoneProfile == null) return;
+
+        try
+        {
+            IConfigurationTransaction transaction = UShellManager.API.BeginConfiguration();
+
+            transaction
+                .RemoveProfile(_activeZoneProfile)                // Remove by concrete instance
+                .RemoveProfile(typeof(DungeonCheatProfile))        // (Alternative) Remove by Type object
+                .RemoveTypeParser<EnemyConfig>()                   // Unregister custom parser
+                .AddProfile(new MainMenuProfile(UShellManager.API));
+
+            await transaction.ApplyAsync();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Failed to restore console: {ex.Message}");
+        }
+    }
+}
+```
 
 ---
 
@@ -900,52 +1055,98 @@ public class RewiredInputProvider : MonoBehaviour, IInputProvider
 
 ## 🔌 Programmatic API (`IUShellAPI`)
 
-`UShellManager.API` is a globally accessible, statically typed facade that lets you interact with the console from any game system — without coupling to any internal type.
+`UShellManager.API` is a globally accessible, statically typed facade that lets you interact with the console programmatically from any game system — without direct coupling to internal shell dependencies or low-level UI implementations.
+
+### Quick Examples
 
 ```csharp
-// Subscribe on Awake / Start, unsubscribe on OnDestroy
-UShellManager.API.OnConsoleOpened += () => playerInput.Disable();
-UShellManager.API.OnConsoleClosed += () => playerInput.Enable();
+using UnityEngine;
+using UShell.Runtime.Unity.API;
+using UShell.Runtime.Core.Configuration;
 
-// Force-execute a command from code (e.g., from a button in a debug panel)
-UShellManager.API.ExecuteCommand("stats");
+public class GameManager : MonoBehaviour
+{
+    private void OnEnable()
+    {
+        // React to visibility changes (e.g., disabling player controls)
+        UShellManager.API.OnConsoleOpened += LockPlayerControls;
+        UShellManager.API.OnConsoleClosed += UnlockPlayerControls;
 
-// Log something to the shell from an external system
-UShellManager.API.OnLogAdded += entry => externalLogger.Write(entry.Message);
+        // Log system messages directly to the terminal from external systems
+        UShellManager.API.OnLogAdded += LogToExternalCloud;
+    }
+
+    private void OnDisable()
+    {
+        UShellManager.API.OnConsoleOpened -= LockPlayerControls;
+        UShellManager.API.OnConsoleClosed -= UnlockPlayerControls;
+        UShellManager.API.OnLogAdded -= LogToExternalCloud;
+    }
+
+    public void TriggerDiagnostics()
+    {
+        // Force-execute any registered command as if the user typed it
+        UShellManager.API.ExecuteCommand("stats");
+    }
+
+    public async void LoadDeveloperDLC()
+    {
+        // Dynamically alter console commands and type parsers on the fly
+        IConfigurationTransaction transaction = UShellManager.API.BeginConfiguration();
+        
+        transaction
+            .AddProfile(new DebugCheatsProfile(UShellManager.API))
+            .AddTypeParser(new SpawnWeightParser())
+            .RemoveProfile<ProductionTelemetryProfile>();
+
+        // Transaction waits for executing tasks, locks input, and mutates in-place
+        await transaction.ApplyAsync();
+    }
+
+    private void LockPlayerControls() => Debug.Log("Controls Locked.");
+    private void UnlockPlayerControls() => Debug.Log("Controls Unlocked.");
+    private void LogToExternalCloud(UShell.Runtime.Core.Output.LogEntry entry) { /* ... */ }
+}
 ```
+
+---
 
 ### `IUShellAPI` Reference
 
-**Properties:**
+#### Properties
 
 | Property | Type | Description |
 |---|---|---|
-| `IsVisible` | `bool` | `true` when the console UI canvas is enabled. |
-| `IsExecutingInteractiveCommand` | `bool` | `true` while an interactive command holds the session lock. |
-| `CurrentInputText` | `string` | Live text content of the input field. |
-| `TotalLogsCount` | `int` | Current number of log items in the scroll view. |
+| `Core` | `IShellCore` | Provides raw compile-time read-only access to the shell core engine registers (History, Session, ParserRegistry). |
+| `View` | `ConsoleView` | Provides direct access to the console canvas UI view layout controller. |
+| `Printer` | `IConsolePrinter` | Provides direct access to the active output console printer instance. |
+| `Controller` | `IShellController` | Provides direct access to the lifecycle event aggregation controller. |
+| `IsVisible` | `bool` | Returns `true` if the console overlay canvas is currently active on screen. |
+| `IsExecutingInteractiveCommand` | `bool` | Returns `true` if an interactive command currently holds an exclusive session lock. |
+| `CurrentInputText` | `string` | Retrieves the exact raw string currently entered into the terminal's input field. |
+| `TotalLogsCount` | `int` | Returns the current total number of visual log items rendered in the viewport. |
 
-**Events:**
+#### Events
 
-| Event | Signature | Fires when |
+| Event | Signature | Fires When |
 |---|---|---|
-| `OnConsoleOpened` | `Action` | Console transitions from hidden to visible. |
-| `OnConsoleClosed` | `Action` | Console transitions from visible to hidden. |
-| `OnConsoleCleared` | `Action` | Log buffer is wiped. |
-| `OnInputTextChanged` | `Action<string>` | User modifies the input field. |
-| `OnCommandExecuting` | `Action<string>` | Before a command enters the pipeline. |
-| `OnCommandExecuted` | `Action<string, ExecutionResult<object?>>` | After a command yields its result. |
-| `OnLogAdded` | `Action<LogEntry>` | A new log entry is dispatched. |
+| `OnConsoleOpened` | `Action` | The console canvas is activated and acquires visual/keyboard focus. |
+| `OnConsoleClosed` | `Action` | The console canvas is deactivated and relinquishes focus. |
+| `OnConsoleCleared` | `Action` | All logged visual entries are wiped via a clear request. |
+| `OnInputTextChanged` | `Action<string>` | The text inside the input field is modified by typing or autocomplete. |
+| `OnCommandExecuting` | `Action<string>` | A command string has been submitted and is about to enter the parse pipeline. |
+| `OnCommandExecuted` | `Action<string, ExecutionResult<object?>>` | A command execution completes, yielding either a result payload or a syntax/binding error. |
+| `OnLogAdded` | `Action<LogEntry>` | A new log entry (Standard, Success, Warning, or Error) is dispatched to the output pipeline. |
 
-**Methods:**
+#### Methods
 
-| Method | Description |
-|---|---|
-| `Show()` | Opens the console UI and claims input focus. |
-| `Hide()` | Closes the console UI and releases input focus. |
-| `Clear()` | Wipes all log entries. |
-| `ExecuteCommand(string)` | Submits a raw command string as if the user typed it. |
-
+| Method | Return Type | Description |
+|---|---|---|
+| `Show()` | `void` | Forces the console overlay UI to open, displaying it on screen and focusing the cursor. |
+| `Hide()` | `void` | Closes the console overlay UI and releases focus. |
+| `Clear()` | `void` | Programmatically triggers a complete clearing of all visual log items. |
+| `ExecuteCommand(string rawCommand)` | `void` | Executes a raw command line string programmatically (e.g. `ExecuteCommand("time.scale 0.5")`). |
+| `BeginConfiguration()` | `IConfigurationTransaction` | Spawns a fluent, transactional Unit of Work to dynamically add/remove profiles and type parsers in-place during runtime. |
 ---
 
 ## 📚 Built-In Profiles Reference

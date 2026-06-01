@@ -8,6 +8,7 @@ using UShell.Runtime.Core.Execution.Binding;
 using UShell.Runtime.Core.Execution.Context;
 using UShell.Runtime.Core.History;
 using UShell.Runtime.Core.Output;
+using UShell.Runtime.Core.Output.Reporting;
 using UShell.Runtime.Core.Parsing.Types;
 using UShell.Runtime.Core.Parsing.Types.BuiltIn;
 using UShell.Runtime.Core.Registry;
@@ -26,6 +27,7 @@ namespace UShell.Runtime.Core.Bootstrapping
 		private readonly IConsolePrinter _printer;
 		private readonly EnvironmentTag _activeEnvironment;
 		private readonly IInteractiveSession _interactiveSession;
+		private readonly IShellController _controller;
 		private readonly List<IShellProfile> _profiles = new();
 		private readonly TypeParserRegistry _parserRegistry = new();
 		private readonly CommandHistory _history;
@@ -48,11 +50,13 @@ namespace UShell.Runtime.Core.Bootstrapping
 			IConsolePrinter printer,
 			EnvironmentTag activeEnvironment,
 			IInteractiveSession interactiveSession,
+			IShellController controller,
 			int historyCapacity = 150)
 		{
 			_printer = printer ?? throw new ArgumentNullException(nameof(printer));
 			_activeEnvironment = activeEnvironment;
 			_interactiveSession = interactiveSession ?? throw new ArgumentNullException(nameof(interactiveSession));
+			_controller = controller ?? throw new ArgumentNullException(nameof(controller));
 			_history = new CommandHistory(historyCapacity);
 
 			RegisterPrimitiveParsers();
@@ -115,20 +119,32 @@ namespace UShell.Runtime.Core.Bootstrapping
 		/// <returns>A fully initialized, ready-to-use shell core.</returns>
 		public IShellCore Build()
 		{
-			var commandBuilder = new ShellCommandBuilder();
+			var commandRegistry = new CommandRegistry();
 
 			foreach (var profile in _profiles)
 			{
+				var commandBuilder = new ShellCommandBuilder();
 				profile.RegisterCommands(commandBuilder);
+
+				IReadOnlyList<CommandSignature> signatures = commandBuilder.BuildAll(_activeEnvironment);
+				commandRegistry.RegisterProfile(profile, signatures);
 			}
 
-			IReadOnlyList<CommandSignature> validSignatures = commandBuilder.BuildAll(_activeEnvironment);
-			var commandRegistry = new CommandRegistry(validSignatures);
 			var argumentBinder = new ArgumentBinder(_parserRegistry, _sessionState);
 
-			var executor = new CommandExecutor(commandRegistry, argumentBinder, _interactiveSession, _printer, _sessionState);
+			var baseExecutor = new CommandExecutor(commandRegistry, argumentBinder, _interactiveSession, _printer, _sessionState);
 
-			return new ShellCore(executor, commandRegistry, _history, _interactiveSession, _sessionState);
+			var reportingExecutor = new ReportingCommandExecutor(baseExecutor, _printer);
+
+			return new ShellCore(
+				reportingExecutor,
+				commandRegistry,
+				_history,
+				_interactiveSession,
+				_sessionState,
+				_parserRegistry,
+				_activeEnvironment,
+				_controller);
 		}
 	}
 }

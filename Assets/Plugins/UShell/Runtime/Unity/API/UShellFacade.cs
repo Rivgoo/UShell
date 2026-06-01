@@ -2,6 +2,7 @@
 using System;
 using UShell.Runtime.Core;
 using UShell.Runtime.Core.Abstractions;
+using UShell.Runtime.Core.Configuration;
 using UShell.Runtime.Core.Execution;
 using UShell.Runtime.Core.Output;
 using UShell.Runtime.Unity.UI;
@@ -18,6 +19,27 @@ namespace UShell.Runtime.Unity.API
 		private readonly ConsoleView _view;
 		private readonly IConsolePrinter _printer;
 		private readonly IShellController _controller;
+
+		/// <summary>
+		/// Provides direct access to the underlying shell core engine. 
+		/// Useful for advanced power-user integrations.
+		/// </summary>
+		public IShellCore Core => _core;
+
+		/// <summary>
+		/// Provides direct access to the console view layout controller.
+		/// </summary>
+		public ConsoleView View => _view;
+
+		/// <summary>
+		/// Provides direct access to the active console printer instance.
+		/// </summary>
+		public IConsolePrinter Printer => _printer;
+
+		/// <summary>
+		/// Provides direct access to the shell lifecycle event aggregation controller.
+		/// </summary>
+		public IShellController Controller => _controller;
 
 		/// <inheritdoc/>
 		public bool IsVisible => _view.IsVisible;
@@ -102,5 +124,8 @@ namespace UShell.Runtime.Unity.API
 
 		/// <inheritdoc/>
 		public void ExecuteCommand(string rawCommand) => _core.Executor.Execute(rawCommand);
+
+		/// <inheritdoc/>
+		public IConfigurationTransaction BeginConfiguration() => _core.BeginConfigurationTransaction();
 	}
 }

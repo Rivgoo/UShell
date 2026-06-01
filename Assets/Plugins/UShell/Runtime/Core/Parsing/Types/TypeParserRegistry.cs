@@ -25,5 +25,12 @@ namespace UShell.Runtime.Core.Parsing.Types
 
 			_parsers[parser.TargetType] = parser;
 		}
+
+		public bool TryRemoveParser(Type targetType)
+		{
+			if (targetType == null) throw new ArgumentNullException(nameof(targetType));
+
+			return _parsers.Remove(targetType);
+		}
 	}
 }
