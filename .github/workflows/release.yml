@@ -10,6 +10,7 @@ jobs:
   build-and-release:
     name: Create Release
     runs-on: ubuntu-latest
+
     permissions:
       contents: write
 
@@ -22,39 +23,56 @@ jobs:
 
       - name: Calculate Version
         id: version
+        shell: bash
         run: |
-          FULL_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
-          
-          VERSION_PREFIX=$(echo $FULL_TAG | sed 's/^v//' | cut -d. -f1-2)
-          
-          if git describe --tags --abbrev=0 >/dev/null 2>&1; then
-            PATCH_COUNT=$(git rev-list --count $FULL_TAG..HEAD)
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME}"
+
           else
-            PATCH_COUNT=$(git rev-list --count HEAD)
+            FULL_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+
+            CLEAN_TAG="${FULL_TAG#v}"
+
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CLEAN_TAG"
+
+            PATCH=${PATCH:-0}
+
+            if git describe --tags --abbrev=0 >/dev/null 2>&1; then
+              COMMITS_SINCE_TAG=$(git rev-list --count "${FULL_TAG}..HEAD")
+            else
+              COMMITS_SINCE_TAG=$(git rev-list --count HEAD)
+            fi
+
+            NEW_PATCH=$((PATCH + COMMITS_SINCE_TAG))
+
+            VERSION="v${MAJOR}.${MINOR}.${NEW_PATCH}"
           fi
-          
-          VERSION="v${VERSION_PREFIX}.${PATCH_COUNT}"
-          
+
           echo "Calculated Version: $VERSION"
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Generate Meta Files List
+        shell: bash
         run: |
           echo "Assets/Plugins/UShell.meta" > metaList.txt
-          find Assets/Plugins/UShell -name \*.meta >> metaList.txt
+          find Assets/Plugins/UShell -name '*.meta' >> metaList.txt
 
-      - name: Build .unitypackage
+      - name: Build unitypackage
         uses: pCYSl5EDgo/create-unitypackage@v1.2.3
         with:
-          package-path: 'UShell-${{ env.VERSION }}.unitypackage'
-          include-files: 'metaList.txt'
+          package-path: "UShell-${{ env.VERSION }}.unitypackage"
+          include-files: metaList.txt
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.VERSION }}
           name: "UShell ${{ env.VERSION }}"
-          files: UShell-${{ env.VERSION }}.unitypackage
+          files: |
+            UShell-${{ env.VERSION }}.unitypackage
           generate_release_notes: true
           draft: false
           prerelease: false
