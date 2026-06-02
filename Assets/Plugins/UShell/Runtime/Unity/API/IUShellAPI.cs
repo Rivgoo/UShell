@@ -1,8 +1,11 @@
-﻿#nullable enable
+﻿﻿#nullable enable
 using System;
+using UShell.Runtime.Core;
+using UShell.Runtime.Core.Abstractions;
 using UShell.Runtime.Core.Configuration;
 using UShell.Runtime.Core.Execution;
 using UShell.Runtime.Core.Output;
+using UShell.Runtime.Unity.UI;
 
 namespace UShell.Runtime.Unity.API
 {
@@ -15,6 +18,27 @@ namespace UShell.Runtime.Unity.API
 	/// </remarks>
 	public interface IUShellAPI
 	{
+		/// <summary>
+		/// Provides direct access to the underlying shell core engine. 
+		/// Useful for advanced power-user integrations.
+		/// </summary>
+		public IShellCore Core { get; }
+
+		/// <summary>
+		/// Provides direct access to the console view layout controller.
+		/// </summary>
+		public ConsoleView View { get; }
+
+		/// <summary>
+		/// Provides direct access to the active console printer instance.
+		/// </summary>
+		public IConsolePrinter Printer { get; }
+
+		/// <summary>
+		/// Provides direct access to the shell lifecycle event aggregation controller.
+		/// </summary>
+		public IShellController Controller { get; }
+		
 		/// <summary>Returns <c>true</c> if the console UI is currently active and visible to the user.</summary>
 		bool IsVisible { get; }
 
